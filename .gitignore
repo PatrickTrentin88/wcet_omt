@@ -92,3 +92,5 @@ ENV/
 pagai
 optimathsat-*
 z3
+*.swp
+*.swo
