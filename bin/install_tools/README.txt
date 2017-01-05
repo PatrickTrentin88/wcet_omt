@@ -17,8 +17,8 @@ have pagai downloaded and patched. In the latter case,
 a symlink will be created in the current directory.
 
 It is possible to set DIR to be the super-directory
-of an existing pagai installation. However, please take
-notice that the installation script will attempt changing
+of an existing pagai installation. However, please note
+that the installation script will attempt changing
 commit version and patching the source code.
 
 After applying the patch, the installation of pagai
@@ -50,7 +50,7 @@ have z3 downloaded and installed. In the latter case,
 a symlink will be created in the current directory.
 
 It is possible to set DIR to be the super-directory
-of an existing z3 installation. However, please take
-notice that the installation script will attempt changing
+of an existing z3 installation. However, please note
+that the installation script will attempt changing
 checking out the master branch and dischard any uncommitted
 change to the code.
