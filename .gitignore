@@ -87,3 +87,8 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# additions
+pagai
+optimathsat-*
+z3
