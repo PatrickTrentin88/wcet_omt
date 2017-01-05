@@ -1,0 +1,96 @@
+diff --git a/WCET/go.sh b/WCET/go.sh
+index 9f025d3..d6bfc52 100755
+--- a/WCET/go.sh
++++ b/WCET/go.sh
+@@ -3,8 +3,8 @@
+ SCRIPTDIR=`dirname $0`
+ 
+ export LD_LIBRARY_PATH=$SCRIPTDIR/../external/z3/lib/:$LD_LIBRARY_PATH
+-export PAGAI_PATH=$SCRIPTDIR/../src/
+-export PATH=$SCRIPTDIR/../external/llvm/bin/:$PATH
++export PAGAI_PATH=$SCRIPTDIR/../src
++export PATH=$SCRIPTDIR/../external/llvm/bin/:$PAGAI_PATH:$PATH
+ 
+ function check_path () {
+ 	if [ -z "`which pagai`" ] ; then
+@@ -117,22 +117,25 @@ name=${filename%.*}
+ function ccompile {
+ 	echo "Compiling..."
+ 	echo "dir = " $dir
+-	clang -emit-llvm -c $FILE -o $dir/$name.bc
++	echo "~\$ $LLVM_PATH/clang -emit-llvm -c $FILE -o $dir/$name.bc"
++	$LLVM_PATH/clang -emit-llvm -c $FILE -o $dir/$name.bc
+ }
+ 
+ function bcoptimize {
+ 	echo "Optimizing the IR file..."
+ 	$PAGAI_PATH/pagai -i $dir/$name.bc --dump-ll --wcet --loop-unroll > $dir/$name.opt.ll
+ 	name="${name}.opt"
+-	llvm-as $dir/$name.ll
++	echo "~\$ $LLVM_PATH/llvm-as $dir/$name.ll"
++	$LLVM_PATH/llvm-as $dir/$name.ll
+ }
+ 
+ function gensmtformula {
+ 	echo "Generating SMT formula..."
+ 	if [ $NONLINEAR -eq 0 ] ; then
+-		echo $PAGAI_PATH/pagai -i $dir/$name.bc -s z3 --wcet --printformula --skipnonlinear 
++		echo "~\$ $PAGAI_PATH/pagai -i $dir/$name.bc -s z3 --wcet --printformula --skipnonlinear > $dir/$name.gen"
+ 		$PAGAI_PATH/pagai -i $dir/$name.bc -s z3 --wcet --printformula --skipnonlinear > $dir/$name.gen
+ 	else
++		echo "~\$ $PAGAI_PATH/pagai -i $dir/$name.bc -s z3 --wcet --printformula > $dir/$name.gen"
+ 		$PAGAI_PATH/pagai -i $dir/$name.bc -s z3 --wcet --printformula > $dir/$name.gen
+ 	fi
+ }
+@@ -168,14 +171,16 @@ if [ $RECURSIVECUTS -eq 1 ] ; then
+ 	printcutsoption=" --recursivecuts --printcutslist  $dir/$name.cuts"
+ fi
+ 
+-# create the formula with summaries	
++# create the formula with summaries
+ echo "Adding counter to SMT formula..."
++echo "~\$ python $SCRIPTDIR/generateSMTwcet.py $dir/$name.gen $matchingoption $printsyntacticoption $printcutsoption > $dir/${name}${MATCHING}.smt2"
+ python $SCRIPTDIR/generateSMTwcet.py $dir/$name.gen $matchingoption $printsyntacticoption $printcutsoption > $dir/${name}${MATCHING}.smt2
+ FORMULA=$dir/${name}${MATCHING}.smt2
+ 
+ if [ $SUMMARIES -eq 0 ] ; then
+ 	# also create the formula without summaries
+ 	echo -e $RED "SMT formula without summaries" $NORMAL
++	echo "~\$ python $SCRIPTDIR/generateSMTwcet.py $dir/$name.gen --nosummaries $matchingoption $printsyntacticoption $printcutsoption > $dir/${name}${MATCHING}.nosummaries.smt2"
+ 	python $SCRIPTDIR/generateSMTwcet.py $dir/$name.gen --nosummaries $matchingoption $printsyntacticoption $printcutsoption > $dir/${name}${MATCHING}.nosummaries.smt2
+ 	FORMULA=$dir/${name}${MATCHING}.nosummaries.smt2
+ fi
+@@ -195,9 +200,8 @@ else
+ 	smtopt=$SCRIPTDIR/smtopt/smtopt
+ fi
+ 
+-echo $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -M $MAX_BOUND 
+-$smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -m -M $MAX_BOUND 2> $FORMULA.time.smtopt\
+->$FORMULA.smtopt 
++echo "~\$ echo $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -M $MAX_BOUND $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -m -M $MAX_BOUND 2> $FORMULA.time.smtopt >$FORMULA.smtopt"
++echo $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -M $MAX_BOUND $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -m -M $MAX_BOUND 2> $FORMULA.time.smtopt >$FORMULA.smtopt
+ HASTERMINATED=$?
+ echo "process terminated with code " $HASTERMINATED
+ case $HASTERMINATED in
+@@ -242,7 +246,7 @@ function processresult {
+ 			SMTRES=`tail -n 2  $FORMULA.smtopt | grep "maximum value"  | cut -d ' ' -f 7 `
+ 			SMTTIME=`tail -n 2  $FORMULA.smtopt | grep "Computation time is"  | cut -d ' ' -f 4 `
+ 			# arrondi:
+-			SMTTIME=`awk "BEGIN { printf \"%.1f\n\", $SMTTIME }"`
++			SMTTIME=`awk -v SMTTIME="$SMTTIME" "BEGIN { printf \"%.1f\n\", $SMTTIME }"`
+ 			PERCENTAGE_GAINED=` echo "scale=1; (($MAX_BOUND - $SMTRES)*100/$MAX_BOUND)" | bc`
+ 			;;
+ 		*)
+diff --git a/src/Execute.cc b/src/Execute.cc
+index f75e9ce..7d6dde4 100644
+--- a/src/Execute.cc
++++ b/src/Execute.cc
+@@ -202,7 +202,7 @@ void execute::exec(std::string InputFilename, std::string OutputFilename, std::v
+ 	p += sep + "lib" + sep + "clang" + sep + CLANG_VERSION_STRING;
+     	Clang.getHeaderSearchOpts().ResourceDir = p;
+ 	
+-	*Dbg << "// ResourceDir is " << Clang.getHeaderSearchOpts().ResourceDir << "\n";
++//	*Dbg << "// ResourceDir is " << Clang.getHeaderSearchOpts().ResourceDir << "\n";
+ 
+ 	if (!is_Cfile(InputFilename)) {
+ 		SMDiagnostic SM;
