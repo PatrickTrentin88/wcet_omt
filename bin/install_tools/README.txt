@@ -48,3 +48,9 @@ where DIR must be either the current directory (wcet_omt/tools)
 or any other directory in the file system where you desire to
 have z3 downloaded and installed. In the latter case,
 a symlink will be created in the current directory.
+
+It is possible to set DIR to be the super-directory
+of an existing z3 installation. However, please take
+notice that the installation script will attempt changing
+checking out the master branch and dischard any uncommitted
+change to the code.

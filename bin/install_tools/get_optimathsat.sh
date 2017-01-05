@@ -21,7 +21,7 @@ extension=""
 ###
 
 DIR_INSTALLATION="${1%/}"
-DIR_DEPENDENCIES="$(dirname "$(readlink -f "$0")")"
+DIR_TOOLS="$(realpath "$( dirname "$( readlink -f "$0" )" )"/../../tools)"
 
 function pushd () { command pushd "${@}" >/dev/null; }
 function popd  () { command popd >/dev/null; }
@@ -100,7 +100,7 @@ popd
 ### 5. create symlink if needed
 ###
 
-DIR_OPTIMATHSAT="${DIR_DEPENDENCIES}/${BASENAME_OPTIMATHSAT}"
+DIR_OPTIMATHSAT="${DIR_TOOLS}/${BASENAME_OPTIMATHSAT}"
 if [ ! -d "${DIR_OPTIMATHSAT}" ] && [ ! -h "${DIR_OPTIMATHSAT}" ]; then
     ln -s "${DIR_INSTALLATION}/${BASENAME_OPTIMATHSAT}" "${DIR_OPTIMATHSAT}" &>/dev/null || { echo "error: unable to create symlink to optimathsat" 1>&2; exit 1; };
 fi

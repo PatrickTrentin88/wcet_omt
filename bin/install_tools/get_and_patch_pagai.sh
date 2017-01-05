@@ -11,8 +11,8 @@
 ###
 
 DIR_INSTALLATION="${1%/}"
-DIR_DEPENDENCIES="$(dirname "$(readlink -f "$0")")"
-PAGAI_PATCH="${DIR_DEPENDENCIES}/patches/pagai.diff"
+DIR_TOOLS="$(realpath "$( dirname "$( readlink -f "$0" )" )"/../../tools)"
+PAGAI_PATCH="$( dirname "$( readlink -f "$0" )" )/patches/pagai.diff"
 PAGAI_COMMIT="16eed0f528a19d54adc538ee5664755a199b5ae0"
 
 function pushd () { command pushd "${@}" >/dev/null; }
@@ -45,7 +45,7 @@ popd
 ### 5. create symlink if needed
 ###
 
-DIR_PAGAI="${DIR_DEPENDENCIES}/pagai"
+DIR_PAGAI="${DIR_TOOLS}/pagai"
 if [ ! -d "${DIR_PAGAI}" ] && [ ! -h "${DIR_PAGAI}" ]; then
 	ln -s "${DIR_INSTALLATION}/pagai" "${DIR_PAGAI}" &>/dev/null || { echo "error: unable to create symlink to pagai" 1>&2 ; exit 1; };
 fi

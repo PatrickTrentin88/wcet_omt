@@ -11,7 +11,7 @@
 ###
 
 DIR_INSTALLATION="${1%/}"
-DIR_DEPENDENCIES="$(dirname "$(readlink -f "$0")")"
+DIR_TOOLS="$(realpath "$( dirname "$( readlink -f "$0" )" )"/../../tools)"
 
 function pushd () { command pushd "${@}" >/dev/null; }
 function popd  () { command popd >/dev/null; }
@@ -30,6 +30,9 @@ pushd "z3"
 has_executable=$(find . -name "z3" -type f -executable)
 
 if [ -z "${has_executable}" ]; then
+	git checkout master &>/dev/null || { echo "error: unable to checkout master branch" 1>&2 ; exit 1; };
+	git reset --hard &>/dev/null    || { echo "error: unable to reset z3 source code" 1>&2   ; exit 1; };
+
 	./configure
 	pushd "build"
 	make all
@@ -43,7 +46,7 @@ popd
 ### 4. create symlink if needed
 ###
 
-DIR_Z3="${DIR_DEPENDENCIES}/z3"
+DIR_Z3="${DIR_TOOLS}/z3"
 if [ ! -d "${DIR_Z3}" ] && [ ! -h "${DIR_Z3}" ]; then
 	ln -s "${DIR_INSTALLATION}/z3" "${DIR_Z3}" &>/dev/null || { echo "error: unable to create symlink to z3" 1>&2 ; exit 1; };
 fi
