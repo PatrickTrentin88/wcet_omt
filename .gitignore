@@ -94,3 +94,4 @@ optimathsat-*
 z3
 *.swp
 *.swo
+.wcet_omt.bashrc
