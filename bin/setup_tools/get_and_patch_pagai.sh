@@ -47,14 +47,42 @@ popd
 
 DIR_PAGAI="${DIR_TOOLS}/pagai"
 if [ ! -d "${DIR_PAGAI}" ] && [ ! -h "${DIR_PAGAI}" ]; then
-	ln -s "${DIR_INSTALLATION}/pagai" "${DIR_PAGAI}" &>/dev/null || { echo "error: unable to create symlink to pagai" 1>&2 ; exit 1; };
+	ln -s "${DIR_INSTALLATION}/pagai" "${DIR_PAGAI}" &>/dev/null || { echo "error: unable to create symlink to pagai" 1>&2; exit 1; };
 fi
 
 ###
-### 6. defer pagai installation to the user
+### 6. suggest installation to the user
 ###
 
-echo -e "Success: pagai patched.\nPlease follow pagai's installation instructions in <${DIR_INSTALLATION}/pagai>."
+pushd "${DIR_INSTALLATION}/pagai"
+
+[ -z "$(find -L . -name pagai -executable -type f 2>/dev/null)" ] && (
+    echo -en "Ready for installing pagai\n\nContinue? [Y/n] "
+    read -s -r ret; echo ""
+    case ${ret} in
+        [yY][eE][sS]|[yY])
+            "./autoinstall.sh" || { echo "error: failed to install pagai" 1>&2; exit 1; };
+            ;;
+        *)
+            ;;
+    esac
+)
+
+popd
+
+###
+### 7. done
+###
+
+pushd "${DIR_INSTALLATION}/pagai"
+
+if [ -z "$(find -L . -name pagai -executable -type f 2>/dev/null)" ]; then
+    echo -e "Success: pagai downloaded and patched.\nPlease follow the manual installation instructions found in <${DIR_INSTALLATION}/pagai>."
+else
+    echo -e "Success: pagai downloaded, patched and installed."
+fi
+
+popd
 
 ###
 ###
