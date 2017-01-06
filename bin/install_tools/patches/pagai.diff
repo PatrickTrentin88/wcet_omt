@@ -1,8 +1,8 @@
 diff --git a/WCET/go.sh b/WCET/go.sh
-index 9f025d3..d6bfc52 100755
+index 9f025d3..f748712 100755
 --- a/WCET/go.sh
 +++ b/WCET/go.sh
-@@ -3,8 +3,8 @@
+@@ -3,8 +3,10 @@
  SCRIPTDIR=`dirname $0`
  
  export LD_LIBRARY_PATH=$SCRIPTDIR/../external/z3/lib/:$LD_LIBRARY_PATH
@@ -10,10 +10,12 @@ index 9f025d3..d6bfc52 100755
 -export PATH=$SCRIPTDIR/../external/llvm/bin/:$PATH
 +export PAGAI_PATH=$SCRIPTDIR/../src
 +export PATH=$SCRIPTDIR/../external/llvm/bin/:$PAGAI_PATH:$PATH
++
++export LLVM_PATH=$SCRIPTDIR/../external/llvm/bin
  
  function check_path () {
  	if [ -z "`which pagai`" ] ; then
-@@ -117,22 +117,25 @@ name=${filename%.*}
+@@ -117,22 +119,26 @@ name=${filename%.*}
  function ccompile {
  	echo "Compiling..."
  	echo "dir = " $dir
@@ -24,6 +26,7 @@ index 9f025d3..d6bfc52 100755
  
  function bcoptimize {
  	echo "Optimizing the IR file..."
++	echo "~\$ $PAGAI_PATH/pagai -i $dir/$name.bc --dump-ll --wcet --loop-unroll > $dir/$name.opt.ll"
  	$PAGAI_PATH/pagai -i $dir/$name.bc --dump-ll --wcet --loop-unroll > $dir/$name.opt.ll
  	name="${name}.opt"
 -	llvm-as $dir/$name.ll
@@ -42,7 +45,7 @@ index 9f025d3..d6bfc52 100755
  		$PAGAI_PATH/pagai -i $dir/$name.bc -s z3 --wcet --printformula > $dir/$name.gen
  	fi
  }
-@@ -168,14 +171,16 @@ if [ $RECURSIVECUTS -eq 1 ] ; then
+@@ -168,14 +174,16 @@ if [ $RECURSIVECUTS -eq 1 ] ; then
  	printcutsoption=" --recursivecuts --printcutslist  $dir/$name.cuts"
  fi
  
@@ -60,19 +63,19 @@ index 9f025d3..d6bfc52 100755
  	python $SCRIPTDIR/generateSMTwcet.py $dir/$name.gen --nosummaries $matchingoption $printsyntacticoption $printcutsoption > $dir/${name}${MATCHING}.nosummaries.smt2
  	FORMULA=$dir/${name}${MATCHING}.nosummaries.smt2
  fi
-@@ -195,9 +200,8 @@ else
+@@ -195,9 +203,8 @@ else
  	smtopt=$SCRIPTDIR/smtopt/smtopt
  fi
  
 -echo $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -M $MAX_BOUND 
 -$smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -m -M $MAX_BOUND 2> $FORMULA.time.smtopt\
 ->$FORMULA.smtopt 
-+echo "~\$ echo $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -M $MAX_BOUND $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -m -M $MAX_BOUND 2> $FORMULA.time.smtopt >$FORMULA.smtopt"
-+echo $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -M $MAX_BOUND $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -m -M $MAX_BOUND 2> $FORMULA.time.smtopt >$FORMULA.smtopt
++echo "~\$ $smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -M $MAX_BOUND"
++$smtopt $FORMULA cost $cutsfile -v $PRINTMODEL -m -M $MAX_BOUND 2> $FORMULA.time.smtopt >$FORMULA.smtopt
  HASTERMINATED=$?
  echo "process terminated with code " $HASTERMINATED
  case $HASTERMINATED in
-@@ -242,7 +246,7 @@ function processresult {
+@@ -242,7 +249,7 @@ function processresult {
  			SMTRES=`tail -n 2  $FORMULA.smtopt | grep "maximum value"  | cut -d ' ' -f 7 `
  			SMTTIME=`tail -n 2  $FORMULA.smtopt | grep "Computation time is"  | cut -d ' ' -f 4 `
  			# arrondi:
@@ -81,6 +84,342 @@ index 9f025d3..d6bfc52 100755
  			PERCENTAGE_GAINED=` echo "scale=1; (($MAX_BOUND - $SMTRES)*100/$MAX_BOUND)" | bc`
  			;;
  		*)
+diff --git a/WCET/smtopt/smtopt.cc b/WCET/smtopt/smtopt.cc
+index 72b780c..f06a2ea 100644
+--- a/WCET/smtopt/smtopt.cc
++++ b/WCET/smtopt/smtopt.cc
+@@ -25,12 +25,12 @@ bool verbose = false;
+ bool fullmodel = false;
+ int max_bound = 0;
+ 
+-Z3_context createSMT(const string &smtFormula){
++Z3_context createSMT(const string &smtFormula, Z3_solver &solver){
+ 	Z3_context ctx;
+ 	Z3_config config = Z3_mk_config();
+ 	Z3_set_param_value(config, "MODEL", "true");
+ 	ctx = Z3_mk_context(config);
+-	//Z3_set_logic(ctx,"QF_LIA");
++//	Z3_set_logic(ctx,"QF_NRA");
+ 
+ 
+ 	//Z3_parse_smtlib_string(ctx, smtFormula.c_str(), 0, 0, 0, 0, 0, 0);
+@@ -55,28 +55,38 @@ Z3_context createSMT(const string &smtFormula){
+ 	Z3_parse_smtlib_string(ctx, smtlibFormula.c_str(), 0, 0, 0, 0, 0, 0);
+ 	Z3_ast f = Z3_get_smtlib_formula(ctx, 0);
+ 
+-	Z3_assert_cnstr(ctx, f);
++//	Z3_tactic tact = Z3_mk_tactic(ctx, "qfnra-nlsat");
++//	solver = Z3_mk_solver_from_tactic(ctx, tact);
++	solver = Z3_mk_simple_solver(ctx);
++	Z3_solver_inc_ref(ctx, solver);
++
++	Z3_solver_assert(ctx, solver, f);
+     //std::cout << Z3_ast_to_string(ctx,f) << "\n";
+ 	Z3_del_config(config);
+ 	return ctx;
+ }
+ 
+-void printSolution(const Z3_context &ctx, const char *varName, const Z3_ast &var, const long long &solution){
++void printSolution(const Z3_context &ctx, const Z3_solver &solver, const char *varName, const Z3_ast &var, const long long &solution){
+ 	Z3_model m = 0;
+ 	Z3_lbool result;
+ 	char tmp[20];
+ 	sprintf(tmp, "%lld", solution);
+ 
+-	Z3_assert_cnstr(ctx, Z3_mk_ge(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
+-	if (fullmodel)
+-		result = Z3_check_and_get_model(ctx, &m);
+-	else
+-		result = Z3_check(ctx);
++	Z3_solver_assert(ctx, solver, Z3_mk_ge(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
++	if (fullmodel) {
++		result = Z3_solver_check(ctx, solver);
++		if (result == Z3_L_TRUE) {
++			m = Z3_solver_get_model(ctx, solver);
++			Z3_model_inc_ref(ctx, m);
++		}
++	} else {
++		result = Z3_solver_check(ctx, solver);
++	}
+ 	if (m){
+ 		printf("------------- MODEL -------------\n");
+ 		printf("%s", Z3_model_to_string(ctx, m));
+ 		printf("------------- MODEL -------------\n");
+-		Z3_del_model(ctx, m);
++		Z3_model_dec_ref(ctx, m);
+ 	}
+ 
+ 	if (result == Z3_L_TRUE)
+@@ -157,35 +167,36 @@ bool recoverVarInFormula(const Z3_context &ctx, const char *varName, Z3_ast &var
+ }
+ 
+ // Initially unbounded binary search
+-long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_decl &decl){
++long long binarySearch(const Z3_context &ctx, const Z3_solver &solver, const Z3_ast &var, const Z3_func_decl &decl){
+ 	long long mid, min = 0, max = 0;
+ 	bool upperBoundFound = false;
+ 	char tmp[20];
+-	do{
++	do {
+ 		Z3_model m;
+-		Z3_push(ctx);
++		Z3_solver_push(ctx, solver);
+ 		mid = (min + max + 1)/2;
+ 		sprintf(tmp, "%lld", mid);
+-		Z3_assert_cnstr(ctx, Z3_mk_ge(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
++		Z3_solver_assert(ctx, solver, Z3_mk_ge(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
+ 		if (verbose){
+ 			printf("Testing %s >= %lld ... ", Z3_ast_to_string(ctx,  var), mid);
+ 			fflush(stdout);
+ 		}
+-		Z3_lbool ans = Z3_check_and_get_model(ctx, &m);
+-		if (ans == Z3_L_UNDEF){
++		Z3_lbool ans = Z3_solver_check(ctx, solver);
++		if (ans == Z3_L_UNDEF) {
+ 			printf("UNDEF\n");
+ 			return min;
+-		}
+-		if (ans == Z3_L_FALSE){
++		} else if (ans == Z3_L_FALSE) {
+ 			max = mid-1;
+ 			upperBoundFound = true;
+ 			if (verbose) printf("UNSAT. New interval = [%lld, %lld].\n", min, max);
+-			Z3_pop(ctx, 1);
+-		}
+-		else{
++			Z3_solver_pop(ctx, solver, 1);
++		} else {
++			m = Z3_solver_get_model(ctx, solver);
+ 			Z3_ast t;
++			Z3_ast v = Z3_model_get_const_interp(ctx, m, decl);
+ 			//min = mid;
+-			Z3_eval_func_decl(ctx, m, decl, &t);
++			Z3_model_eval(ctx, m, v, true, &t);
++			//Z3_eval_func_decl(ctx, m, decl, &t); // FIXME: is it correct?
+ 			Z3_get_numeral_int64(ctx, t, &min);
+ 			if (!upperBoundFound) {
+ 				if (max_bound == 0) {
+@@ -200,7 +211,7 @@ long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_d
+ 			}
+ 			if (verbose) printf("SAT (value found = %lld). New interval = [%lld, %lld].\n", min, min, max);
+ 		}
+-	}while(min < max);
++	} while(min < max);
+ 	return min;
+ }
+ 
+@@ -208,6 +219,7 @@ int main(int argc, char *argv[]) {
+ 	Z3_context ctx;
+ 	Z3_ast varToMax;
+ 	Z3_func_decl varToMaxDecl;
++	Z3_solver solver;
+ 
+ 	string smtFormula;
+ 	char *varMaximize = NULL;
+@@ -215,17 +227,18 @@ int main(int argc, char *argv[]) {
+ 
+ 	if (readProblem(argc, argv, smtFormula, varMaximize) == false)
+ 		exit(0);
+-	ctx = createSMT(smtFormula);
++	ctx = createSMT(smtFormula, solver);
+ 	if (recoverVarInFormula(ctx, varMaximize, varToMax, varToMaxDecl) == false){
+ 		Z3_del_context(ctx);
+ 		exit(0);
+ 	}
+ 	clock_t start = clock();
+-	solution = binarySearch(ctx, varToMax, varToMaxDecl);
++	solution = binarySearch(ctx, solver, varToMax, varToMaxDecl);
+ 	clock_t end = clock();
+ 	double timing = (double)(end - start) / CLOCKS_PER_SEC;
+-	printSolution(ctx, varMaximize, varToMax, solution);
++	printSolution(ctx, solver, varMaximize, varToMax, solution);
+ 	printf("Computation time is %f",timing);
+ 
++	Z3_solver_dec_ref(ctx, solver);
+ 	Z3_del_context(ctx);
+ }
+diff --git a/WCET/smtopt/smtoptv2.cc b/WCET/smtopt/smtoptv2.cc
+index 0f78ce5..fa58cd5 100644
+--- a/WCET/smtopt/smtoptv2.cc
++++ b/WCET/smtopt/smtoptv2.cc
+@@ -25,12 +25,12 @@ bool verbose = false;
+ bool fullmodel = false;
+ int max_bound = 0;
+ 
+-Z3_context createSMT(const string &smtFormula){
++Z3_context createSMT(const string &smtFormula, Z3_solver &solver){
+ 	Z3_context ctx;
+ 	Z3_config config = Z3_mk_config();
+ 	Z3_set_param_value(config, "MODEL", "true");
+ 	ctx = Z3_mk_context(config);
+-	//Z3_set_logic(ctx,"QF_LIA");
++//	Z3_set_logic(ctx,"QF_NRA");
+ 
+ 
+ 	//Z3_parse_smtlib_string(ctx, smtFormula.c_str(), 0, 0, 0, 0, 0, 0);
+@@ -55,28 +55,37 @@ Z3_context createSMT(const string &smtFormula){
+ 	Z3_parse_smtlib_string(ctx, smtlibFormula.c_str(), 0, 0, 0, 0, 0, 0);
+ 	Z3_ast f = Z3_get_smtlib_formula(ctx, 0);
+ 
+-	Z3_assert_cnstr(ctx, f);
++//	Z3_tactic tact = Z3_mk_tactic(ctx, "qfnra-nlsat");
++	solver = Z3_mk_simple_solver(ctx);
++	Z3_solver_inc_ref(ctx, solver);
++
++	Z3_solver_assert(ctx, solver, f);
+     //std::cout << Z3_ast_to_string(ctx,f) << "\n";
+ 	Z3_del_config(config);
+ 	return ctx;
+ }
+ 
+-void printSolution(const Z3_context &ctx, const char *varName, const Z3_ast &var, const long long &solution){
++void printSolution(const Z3_context &ctx, const Z3_solver &solver, const char *varName, const Z3_ast &var, const long long &solution){
+ 	Z3_model m = 0;
+ 	Z3_lbool result;
+ 	char tmp[20];
+ 	sprintf(tmp, "%lld", solution);
+ 
+-	Z3_assert_cnstr(ctx, Z3_mk_ge(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
+-	if (fullmodel)
+-		result = Z3_check_and_get_model(ctx, &m);
+-	else
+-		result = Z3_check(ctx);
++	Z3_solver_assert(ctx, solver, Z3_mk_ge(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
++	if (fullmodel) {
++		result = Z3_solver_check(ctx, solver);
++		if (result == Z3_L_TRUE) {
++			m = Z3_solver_get_model(ctx, solver);
++			Z3_model_inc_ref(ctx, m);
++		}
++	} else {
++		result = Z3_solver_check(ctx, solver);
++	}
+ 	if (m){
+ 		printf("------------- MODEL -------------\n");
+ 		printf("%s", Z3_model_to_string(ctx, m));
+ 		printf("------------- MODEL -------------\n");
+-		Z3_del_model(ctx, m);
++		Z3_model_dec_ref(ctx, m);
+ 	}
+ 
+ 	if (result == Z3_L_TRUE)
+@@ -158,35 +167,37 @@ bool recoverVarInFormula(const Z3_context &ctx, const char *varName, Z3_ast &var
+ }
+ 
+ // Initially unbounded binary search
+-long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_decl &decl, int maxbound){
++long long binarySearch(const Z3_context &ctx, const Z3_solver &solver,
++			const Z3_ast &var, const Z3_func_decl &decl, int maxbound) {
+ 	long long mid, min = 0, max = 0;
+ 	bool upperBoundFound = false;
+ 	char tmp[20];
+-	do{
++	do {
+ 		Z3_model m;
+-		Z3_push(ctx);
++		Z3_solver_push(ctx, solver);
+ 		mid = (min + max + 1)/2;
+ 		sprintf(tmp, "%lld", mid);
+-		Z3_assert_cnstr(ctx, Z3_mk_ge(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
++		Z3_solver_assert(ctx, solver, Z3_mk_ge(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
+ 		if (verbose){
+ 			printf("Testing %s >= %lld ... ", Z3_ast_to_string(ctx,  var), mid);
+ 			fflush(stdout);
+ 		}
+-		Z3_lbool ans = Z3_check_and_get_model(ctx, &m);
++		Z3_lbool ans = Z3_solver_check(ctx, solver);
+ 		if (ans == Z3_L_UNDEF){
+ 			printf("UNDEF\n");
+-			Z3_pop(ctx, 1);
++			Z3_solver_pop(ctx, solver, 1);
+ 			return min;
+-		}
+-		if (ans == Z3_L_FALSE){
++		} else if (ans == Z3_L_FALSE) {
+ 			max = mid-1;
+ 			upperBoundFound = true;
+ 			if (verbose) printf("UNSAT. New interval = [%lld, %lld].\n", min, max);
+-		}
+-		else{
++		} else {
++			m = Z3_solver_get_model(ctx, solver);
+ 			Z3_ast t;
++			Z3_ast v = Z3_model_get_const_interp(ctx, m, decl);
+ 			//min = mid;
+-			Z3_eval_func_decl(ctx, m, decl, &t);
++			Z3_model_eval(ctx, m, v, true, &t);
++			//Z3_eval_func_decl(ctx, m, decl, &t);
+ 			Z3_get_numeral_int64(ctx, t, &min);
+ 			if (!upperBoundFound) {
+ 				if (maxbound == 0) {
+@@ -197,16 +208,17 @@ long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_d
+ 			}
+ 			if (max > INT_MAX){
+ 				printf("Warning: The variable looks unbounded. (aborted)\n");
++				Z3_solver_pop(ctx, solver, 1);
+ 				return min;
+ 			}
+ 			if (verbose) printf("SAT (value found = %lld). New interval = [%lld, %lld].\n", min, min, max);
+ 		}
+-		Z3_pop(ctx, 1);
++		Z3_solver_pop(ctx, solver, 1);
+ 	}while(min < max);
+ 	return min;
+ }
+ 
+-bool update_cuts(const Z3_context &ctx, std::string cutsfilename){
++bool update_cuts(const Z3_context &ctx, std::string cutsfilename, const Z3_solver &solver){
+ 	unsigned num_decl = Z3_get_smtlib_num_decls(ctx);
+ 	unsigned nb_cuts = 0;
+ 	unsigned treated = 0;
+@@ -244,11 +256,11 @@ bool update_cuts(const Z3_context &ctx, std::string cutsfilename){
+ 	        		decl = Z3_get_smtlib_decl(ctx, i);
+ 	        		var = Z3_mk_const(ctx, symb, Z3_mk_int_sort(ctx));
+ 	        		std::cout << "cut found " << name << "\n";
+-	        		long long solution = binarySearch(ctx, var, decl,current_cut_maxbound);
++	        		long long solution = binarySearch(ctx, solver, var, decl,current_cut_maxbound);
+ 	        		std::cout << "cost is " << solution << "\n";
+ 	        		char tmp[20];
+ 	        		sprintf(tmp, "%lld", solution);
+-	        		Z3_assert_cnstr(ctx, Z3_mk_le(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
++	        		Z3_solver_assert(ctx, solver, Z3_mk_le(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
+ 	        	}
+ 	        }
+         }
+@@ -262,6 +274,7 @@ int main(int argc, char *argv[]) {
+ 	Z3_context ctx;
+ 	Z3_ast varToMax;
+ 	Z3_func_decl varToMaxDecl;
++	Z3_solver solver;
+ 
+ 	string smtFormula;
+ 	string cutsfilename;
+@@ -270,18 +283,21 @@ int main(int argc, char *argv[]) {
+ 
+ 	if (readProblem(argc, argv, smtFormula, varMaximize, cutsfilename) == false)
+ 		exit(0);
+-	ctx = createSMT(smtFormula);
++	ctx = createSMT(smtFormula, solver);
+ 	if (recoverVarInFormula(ctx, varMaximize, varToMax, varToMaxDecl) == false){
+ 		Z3_del_context(ctx);
+ 		exit(0);
+ 	}
+ 	clock_t start = clock();
+-	update_cuts(ctx,cutsfilename);
+-	solution = binarySearch(ctx, varToMax, varToMaxDecl, max_bound);
++	printf("Updating Cuts...\n");
++	update_cuts(ctx, cutsfilename, solver);
++	printf("Search Solution...\n");
++	solution = binarySearch(ctx, solver, varToMax, varToMaxDecl, max_bound);
+ 	clock_t end = clock();
+ 	double timing = (double)(end - start) / CLOCKS_PER_SEC;
+-	printSolution(ctx, varMaximize, varToMax, solution);
++	printSolution(ctx, solver, varMaximize, varToMax, solution);
+ 	printf("Computation time is %f",timing);
+ 
++	Z3_solver_dec_ref(ctx, solver);
+ 	Z3_del_context(ctx);
+ }
 diff --git a/src/Execute.cc b/src/Execute.cc
 index f75e9ce..7d6dde4 100644
 --- a/src/Execute.cc
