@@ -110,7 +110,6 @@ if [ -z "${DIR_OPTIMATHSAT}" ]; then
             ;;
         *)
             NUM_ERRORS=$((NUM_ERRORS + 1))
-            echo "NOOO"
             ;;
     esac
 fi
