@@ -5,7 +5,7 @@
 ###
 
 BASE_URL="http://optimathsat.disi.unitn.it/releases"
-version="1.4.2"         # NOTE: not yet publicly available
+version="1.4.2"	# NOTE: not yet publicly available [Mac binary is unavailable, and the packages may be updated without warning with critical updates]
 platform=""
 arch=""
 extension=""
@@ -116,6 +116,3 @@ echo -e "Success: optimathsat downloaded."
 ###
 
 exit 0
-
-# TODO:
-#find -L . -name optimathsat -type f -executable 2>/dev/null
