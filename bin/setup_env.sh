@@ -115,8 +115,9 @@ if [ -z "${DIR_OPTIMATHSAT}" ]; then
     esac
 fi
 
-BIN_OPTIMATHSAT=$(find -L "${DIR_TOOLS}" -name "optimathsat*" -executable -type f 2>/dev/null)
-[ -z "${BIN_OPTIMATHSAT}" ] && echo -e "error: unable to locate optimathsat binary in <${DIR_TOOLS}>" 1>&2 \
+[[ ${OSTYPE} =~ msys* ]] && optimathsat="optimathsat.exe" || optimathsat="optimathsat"
+BIN_OPTIMATHSAT=$(find -L "${DIR_TOOLS}" -name "${optimathsat}" -executable -type f 2>/dev/null)
+[ -z "${BIN_OPTIMATHSAT}" ] && echo -e "error: unable to locate ${optimathsat} binary in <${DIR_TOOLS}>" 1>&2 \
                             && NUM_ERRORS=$((NUM_ERRORS + 1))
 
 (( 0 != EXIT_ON_ERROR )) && (( 0 != NUM_ERRORS )) && exit 1
@@ -215,12 +216,14 @@ pathprepend() {
         echo "- vers. : $(z3 -version | cut -d\  -f3)"
     fi
 
-    if [ -z "$(which optimathsat)" ]; then
-        echo "error: optimathsat not found" 1>&2 && ret=$((ret + 1))
+    [[ ${OSTYPE} =~ msys* ]] && optimathsat="optimathsat.exe" || optimathsat="optimathsat"
+
+    if [ -z "$(which ${optimathsat})" ]; then
+        echo "error: ${optimathsat} not found" 1>&2 && ret=$((ret + 1))
     elif (( 0 != VERBOSE )); then
         echo "optimathsat:"
-        echo "- using : $(which optimathsat)"
-        echo "- vers. : $(optimathsat -version | cut -d\  -f3) (min: 1.4.2)"
+        echo "- using : $(which ${optimathsat})"
+        echo "- vers. : $(${optimathsat} -version | cut -d\  -f3) (min: 1.4.2)"
     fi
 
     exit "${ret}"
