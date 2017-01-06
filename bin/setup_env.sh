@@ -35,7 +35,7 @@ if [ ! -d "${DIR_PAGAI}" ]; then
     read -s -r ret; echo ""
     case ${ret} in
         [yY][eE][sS]|[yY])
-            "${DIR_SETUP_TOOLS}/get_and_patch_pagai.sh" "${DIR_TOOLS}" || NUM_ERRORS=$((NUM_ERRORS + 1))
+            "${DIR_SETUP_TOOLS}/get_pagai.sh" "${DIR_TOOLS}" || NUM_ERRORS=$((NUM_ERRORS + 1))
             ;;
         *)
             NUM_ERRORS=$((NUM_ERRORS + 1))

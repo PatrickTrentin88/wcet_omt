@@ -30,13 +30,22 @@ pushd "z3"
 has_executable=$(find . -name "z3" -type f -executable)
 
 if [ -z "${has_executable}" ]; then
-	git checkout master &>/dev/null || { echo "error: unable to checkout master branch" 1>&2 ; exit 1; };
-	git reset --hard &>/dev/null    || { echo "error: unable to reset z3 source code" 1>&2   ; exit 1; };
+    echo -e -n "Ready for building z3\n\nContinue? [Y/n] "
+    read -s -r ret; echo ""
+    case ${ret} in
+        [yY][eE][sS]|[yY])
+            git checkout master &>/dev/null || { echo "error: unable to checkout master branch" 1>&2 ; exit 1; };
+            git reset --hard &>/dev/null    || { echo "error: unable to reset z3 source code" 1>&2   ; exit 1; };
 
-	./configure
-	pushd "build"
-	make all
-	popd
+            ./configure
+            pushd "build"
+            make all
+            popd
+
+            ;;
+        *)
+            ;;
+    esac
 fi
 
 popd
@@ -48,7 +57,7 @@ popd
 
 DIR_Z3="${DIR_TOOLS}/z3"
 if [ ! -d "${DIR_Z3}" ] && [ ! -h "${DIR_Z3}" ]; then
-	ln -s "${DIR_INSTALLATION}/z3" "${DIR_Z3}" &>/dev/null || { echo "error: unable to create symlink to z3" 1>&2 ; exit 1; };
+    ln -s "${DIR_INSTALLATION}/z3" "${DIR_Z3}" &>/dev/null || { echo "error: unable to create symlink to z3" 1>&2 ; exit 1; };
 fi
 
 ###

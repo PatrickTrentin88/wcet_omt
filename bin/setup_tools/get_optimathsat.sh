@@ -56,7 +56,7 @@ if [ "${platform}" == "windows" ]; then
     esac
 fi
 
-echo -en "Selected OptiMathSAT\n\
+echo -e -n "Selected OptiMathSAT\n\
 version   : ${version}\n\
 platform  : ${platform}\n\
 arch      : ${arch}\n\

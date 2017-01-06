@@ -47,7 +47,7 @@ popd
 
 DIR_PAGAI="${DIR_TOOLS}/pagai"
 if [ ! -d "${DIR_PAGAI}" ] && [ ! -h "${DIR_PAGAI}" ]; then
-	ln -s "${DIR_INSTALLATION}/pagai" "${DIR_PAGAI}" &>/dev/null || { echo "error: unable to create symlink to pagai" 1>&2; exit 1; };
+    ln -s "${DIR_INSTALLATION}/pagai" "${DIR_PAGAI}" &>/dev/null || { echo "error: unable to create symlink to pagai" 1>&2; exit 1; };
 fi
 
 ###
@@ -57,7 +57,7 @@ fi
 pushd "${DIR_INSTALLATION}/pagai"
 
 [ -z "$(find -L . -name pagai -executable -type f 2>/dev/null)" ] && (
-    echo -en "Ready for installing pagai\n\nContinue? [Y/n] "
+    echo -e -n "Ready for installing pagai\n\nContinue? [Y/n] "
     read -s -r ret; echo ""
     case ${ret} in
         [yY][eE][sS]|[yY])

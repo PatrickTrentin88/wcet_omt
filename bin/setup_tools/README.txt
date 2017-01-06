@@ -9,7 +9,7 @@ Please report any issue you may find on this or any other platform.
 
 1) pagai (http://pagai.forge.imag.fr/)
 
-    ~$ ./get_and_patch_pagai.sh DIR
+    ~$ ./get_pagai.sh DIR
 
 where DIR must be either the current directory (wcet_omt/tools)
 or any other directory in the file system where you desire to
