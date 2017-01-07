@@ -124,7 +124,15 @@ BIN_OPTIMATHSAT=$(find -L "${DIR_TOOLS}" -name "${optimathsat}" -executable -typ
 
 
 ###
-### 5. dump environment into ${BASHRC}
+### 5. locate wcet_lib
+###
+
+DIR_WCET_LIB="${DIR_BASE}/bin/wcet_lib/"
+
+
+
+###
+### 6. dump environment into ${BASHRC}
 ###
 
 (
@@ -152,22 +160,24 @@ pathprepend() {
   #          ishmael@superuser.com
 }
 '
-
-    # update path [compatibility with old scripts]
-    echo "export PATH_PAGAI=$( dirname "${BIN_PAGAI}" )"
-    echo "export PATH_LLVM=${DIR_LLVM}"
+    echo "export PATH_PAGAI=\"$( dirname "${BIN_PAGAI}" )\""
+    echo "export PATH_LLVM=\"${DIR_LLVM}\""
     echo 'pathprepend "${PATH_PAGAI}" "${PATH_LLVM}"'                   # ignore shellcheck: no expansion intended
     echo ""
-    echo "export PATH_Z3=$( dirname "${BIN_Z3}" )"
-    echo "export PATH_OPTIMATHSAT=$( dirname "${BIN_OPTIMATHSAT}" )"
+    echo "export PATH_Z3=\"$( dirname "${BIN_Z3}" )\""
+    echo "export PATH_OPTIMATHSAT=\"$( dirname "${BIN_OPTIMATHSAT}" )\""
     echo 'pathprepend "${PATH_Z3}" "${PATH_OPTIMATHSAT}"'               # ignore shellcheck: no expansion intended
+    echo ""
+    echo "export WCET_LIB_PATH=\"${DIR_WCET_LIB}\""
+    echo 'export PYTHONPATH="${PYTHONPATH}":"${WCET_LIB_PATH}"'         # ignore shellcheck: no expansion intended
+    echo 'pathappend "${WCET_LIB_PATH}"'                                # ignore shellcheck: no expansion intended
 
 ) > "${BASHRC}"
 
 
 
 ###
-### 6. test environment
+### 7. test environment
 ###
 
 (
@@ -231,7 +241,7 @@ pathprepend() {
 
 
 ###
-### 7. done
+### 8. done
 ###
 
 if (( NUM_ERRORS != 0 )); then
@@ -241,3 +251,11 @@ else
     (( 0 != VERBOSE )) && echo -e "\n... success!\n"
     echo "Environment stored in <${BASHRC}>"
 fi
+
+
+
+###
+###
+###
+
+exit 0

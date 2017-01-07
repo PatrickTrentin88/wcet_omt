@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import argparse
 from smt2_env import *
 from graph import *
