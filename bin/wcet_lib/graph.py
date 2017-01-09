@@ -174,6 +174,7 @@ class SourceCodeGraph:
 
         # add comments
         no_paths = self._compute_paths_among(self._start_uid, self._end_uid)
+        env.add_comment("ENCODING = " + str(encoding))
         env.add_comment("NB_PATHS = " + str(no_paths))
         env.add_comment("NB_PATHS_DIGITS = " + str(len(str(no_paths))))
         env.add_comment("NB_CUTS = " + str(len(self._cuts.keys()))) # includes cut from start to end node
