@@ -409,7 +409,6 @@ function wcet_parse_output ()
     args["smt2_file"]="${1}"
     args["out_file"]="${2}"
 
-
     if grep -q "# Optimum:" "${2}"; then
         args["opt_value"]="$(grep "Optimum" "${2}"         | cut -d\  -f 3)"
     elif grep "(objectives" "${2}"; then
