@@ -185,7 +185,7 @@ function wcet_gen_blocks()
 #       ${1}        -- full path to blocks file (ext: `.gen`)
 #       [${2}]      -- encoding type
 #                           0: default, [same as Henry:2014:CWE:2597809.2597817]
-#                           1: assert-soft base
+#                           1: assert-soft based
 #                           2: difference-logic based
 #       [${3}]      -- timeout in seconds
 #       [${4}]      -- disable summaries if non-zero
