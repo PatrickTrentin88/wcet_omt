@@ -4,8 +4,11 @@
 ### GLOBALS
 ###
 
-VERBOSE_CMD=$((1))
-SIMULATE=$((0))
+VERBOSE_WARNINGS=$((1))
+VERBOSE_COMMANDS=$((1))
+VERBOSE_WORKFLOW=$((1))
+SIMULATION_ONLY=$((1))
+FORCE_OVERWRITE=$((1))
 
 ###
 ### COLORS
@@ -33,7 +36,7 @@ def_colors
 function error()
 {
     echo -e -n "${RED}"
-    echo -e -n "[error] $(basename "${0}"): " 1>&2
+    echo -e -n "[error]   $(basename "${0}"): " 1>&2
     [ -n "${1}" ] && echo -e -n "${1}: " 1>&2
     [ -n "${2}" ] && echo -e -n "row ${2}: " 1>&2
     [ -n "${3}" ] && echo -e -n "\n[error] ${3}. " 1>&2
@@ -44,6 +47,7 @@ function error()
 
 function warning()
 {
+    (( 0 == VERBOSE_WARNINGS )) && return 1
     echo -e -n "${YELLOW}"
     echo -e -n "[warning] $(basename "${0}"): " 1>&2
     [ -n "${1}" ] && echo -e -n "${1}: " 1>&2
@@ -55,8 +59,15 @@ function warning()
 
 function log_cmd()
 {
-    (( 0 == VERBOSE_CMD )) && return 1
-    echo -e "${GREEN}[log] ~\$${NORMAL} ${1}"
+    (( 0 == VERBOSE_COMMANDS )) && return 1
+    echo -e "${GREEN}[log]  ~\$${NORMAL} ${1}"
+    return 0
+}
+
+function log()
+{
+    (( 0 == VERBOSE_WORKFLOW )) && return 1
+    echo -e "${BLUE}[log]  <<${NORMAL} ${1}"
     return 0
 }
 
@@ -100,7 +111,7 @@ function wcet_gen_bytecode()
     [[ "${1}" =~ .c$ ]] && dst_file="${1:: -2}.bc" || dst_file="${1}.bc"
 
     log_cmd "clang -emit-llvm -c \"${1}\" -o \"${dst_file}\""
-    if (( 0 == SIMULATE )); then
+    if (( 0 == SIMULATION_ONLY )); then
         clang -emit-llvm -c "${1}" -o "${dst_file}" || \
             { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to generate bytecode" "${?}"; return "${?}"; };
     fi
@@ -126,7 +137,7 @@ function wcet_bytecode_optimization()
 
 
     log_cmd "pagai -i \"${1}\" --dump-ll --wcet --loop-unroll > \"${dst_file}\""
-    if (( 0 == SIMULATE )); then
+    if (( 0 == SIMULATION_ONLY )); then
         pagai -i "${1}" --dump-ll --wcet --loop-unroll > "${dst_file}" || \
             { error "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
@@ -138,7 +149,7 @@ function wcet_bytecode_optimization()
     fi
 
     log_cmd "llvm-as \"${dst_file}\""
-    if (( 0 == SIMULATE )); then
+    if (( 0 == SIMULATION_ONLY )); then
         llvm-as "${dst_file}" || \
             { error "${FUNCNAME[0]}" "$((LINENO - 1))" "llvm-as error" "${?}"; return "${?}"; };
     fi
@@ -165,7 +176,7 @@ function wcet_gen_blocks()
     (( ${#} == 2 )) && solver="${2}" || solver="z3";
 
     log_cmd "pagai -i \"${1}\" -s \"${solver}\" --wcet --printformula --skipnonlinear --loop-unroll > \"${dst_file}\""
-    if (( 0 == SIMULATE )); then
+    if (( 0 == SIMULATION_ONLY )); then
         pagai -i "${1}" -s "${solver}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
             { error "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
@@ -217,7 +228,7 @@ function wcet_gen_omt()
     (( 0 != print_maxpath ))  && options+=("--printlongestsyntactic" "${dst_base}.longestsyntactic")
 
     log_cmd "wcet_generator.py ${options[*]} \"${1}\" > \"${dst_file}\""
-    if (( 0 == SIMULATE )); then
+    if (( 0 == SIMULATION_ONLY )); then
         # ignore shellcheck: expansions intended
         wcet_generator.py "${options[@]}" "${1}" > "${dst_file}" || \
             { error "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}"; };
@@ -273,7 +284,7 @@ function wcet_run_optimathsat ()
 
     log_cmd "optimathsat ${*:3} < \"${1}\" > \"${2}\" 2>&1"
 
-    if (( 0 == SIMULATE )); then
+    if (( 0 == SIMULATION_ONLY )); then
         /usr/bin/time -f "# real-time: %e" optimathsat "${@:3}" < "${1}" > "${2}" 2>&1 ||
             { error "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat error" "${?}"; return "${?}"; };
     fi
@@ -300,7 +311,7 @@ function wcet_run_z3 ()
 
     log_cmd "z3 ${*:3} \"${1}\" > \"${2}\" 2>&1"
 
-    if (( 0 == SIMULATE )); then
+    if (( 0 == SIMULATION_ONLY )); then
         sed 's/\((maximize .*\) \(:.* :.*)\)/\1)/' "${1}" | /usr/bin/time -f "# real-time: %e" z3 -in -smt2 "${@:3}" > "${2}" 2>&1 ||
             { error "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 error" "${?}"; return "${?}"; };
     fi
@@ -424,4 +435,151 @@ function wcet_parse_output ()
 
     wcet_parse_output="$(wcet_print_data "$(declare -p args)")"
     return 0
+}
+
+###
+###
+###
+
+# wcet_run_experiment:
+#   recursively explores a benchmark directory looking for `.c` and `.bc`
+#   files, applying to each file a function `wcet_{*}_handler` and storing
+#   the result within a similar folder structure in the target directory
+#       ${1}        -- full path to the benchmark directory
+#       ${2}        -- full path to the statistics directory
+#       [...]       -- keywords `{*}` of the `wcet_{*}_handler` functions
+#                      to be used for dealing with each file
+#
+# shellcheck disable=SC2030
+function wcet_run_experiment ()
+{
+    local file_name= ; local file_ext= ;
+
+    is_directory "${1}" || return "${?}"
+    is_directory "${2}" || return "${?}"
+
+    set -- "$(realpath "${1}")" "$(realpath "${2}")" "${@:3}"
+
+    find "${1}" \( -name "*.c" -o -name "*.bc" \) -print0 | \
+    while read -r -d $'\0' file
+    do
+        file_name="${file%.*}"
+        file_ext="${file##*.}"
+
+        # skip `.bc` if `.c` exists
+        [ "${file_ext}" = "bc" ] && [ -f "${file_name}.c" ] && [ -r "${file_name}.c" ] && \
+            { warning "${FUNCNAME[0]}" "$((LINENO - 1))" "skipped file <${file}>"; continue; }
+
+        for test_conf in "${@:3}"
+        do
+            local dest_dir= ;
+            dest_dir="${2}/${test_conf}"
+
+            wcet_replicate_dirtree "${1}" "${dest_dir}" "${file}" || return "${?}"
+
+            wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}"
+
+        done
+    done
+}
+
+# wcet_replicate_dirtree:
+#   replicates folder structure used by a benchmark file within
+#   the statistics folder
+#       ${1}        -- full path to benchmarks directory
+#       ${2}        -- full path to statistics directory for a given configuration
+#       ${3}        -- full path to the benchmark file
+#       return ${wcet_replicate_dirtree}
+#                   -- full path to benchmark file under statistics folder tree
+#                      stripped of its extension
+#
+function wcet_replicate_dirtree ()
+{
+    wcet_replicate_dirtree= ;
+
+    is_directory "${1}"     || return "${?}"
+    is_readable_file "${3}" || return "${?}"
+
+    mkdir -p "${2}" 2>/dev/null || \
+        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to create directory <${2}>" "${?}"; return "${?}"; };
+
+    mkdir -p "$(dirname "${3}")" "${2}" 2>/dev/null || \
+        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to replicate folder tree" "${?}"; return "${?}"; };
+
+    wcet_replicate_dirtree="${3/"${1}"/"${2}"}"
+    wcet_replicate_dirtree="${wcet_replicate_dirtree%.*}"
+    return 0
+}
+
+# wcet_handle_file:
+#   given a `.bc` or `.c` file and a configuration, it runs the associated
+#   file handler over the file, and logs the experimental results
+#       ${1}        -- full path to statistics directory for a given configuration
+#       ${2}        -- full path to the benchmark file
+#       ${3}        -- full path to benchmark file under statistics folder tree
+#                      stripped of its extension
+#       return ${wcet_handle_file}
+#                   -- full path to the file in which benchmark data has been logged
+#
+# shellcheck disable=SC2034
+function wcet_handle_file ()
+{
+    wcet_handle_file= ;
+
+    local func_name= ; local stats_file= ; local stat_max= ;
+    local stat_opt=  ; local stat_gain=  ; local stat_ref= ;
+
+    is_readable_file "${2}" || return "${?}"
+
+    func_name="wcet_$(basename "${1}")_handler"
+    type -t "${func_name}" 2>/dev/null 1>&2 || { error "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> is not a function, built-in or command" "${?}"; return "${?}"; };
+
+    # 1. bytecode generation if file is `.c` source code
+    if [ "${2##*.}" = "c" ]; then
+        wcet_gen_bytecode "${2}" || \
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate bytecode for <${2}>" "${?}"; return "${?}"; };
+    else
+        wcet_gen_bytecode="${2}"
+    fi
+
+    # 2. generate smt2 + blocks file
+    wcet_gen_blocks "${wcet_gen_bytecode}" || \
+        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate smt2+blocks for <${wcet_gen_bytecode}>" "${?}"; return "${?}"; };
+
+    # 3. call file handler for specific configuration
+    #   - should generate omt formula of the right encoding
+    #   - should run the right omt solver
+    #   - should save in ${func_name} the formatted string with collected data
+    eval "${func_name} ${*:1}" || \
+        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
+
+    # 4. store data
+    stats_file="${1}/$(basename "${1}").log"
+    [ -n "${!func_name}" ] || \
+        { warning "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
+    [ -f "${stats_file}" ] || touch "${stats_file}" || \
+        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "<${stats_file}> can not be created" "${?}"; return "${?}"; };
+    echo "${!func_name}" >> "${stats_file}"
+
+    # 5. log test
+    stat_max="$(echo "${!func_name}"  | cut -d\| -f 1 | sed 's/ //g')"
+    stat_opt="$(echo "${!func_name}"  | cut -d\| -f 2 | sed 's/ //g')"
+    stat_gain="$(echo "${!func_name}" | cut -d\| -f 3 | sed 's/ //g')"
+    stat_ref="$(basename "${1%.*}")"
+    log "${BLUE}${func_name}(${NORMAL}${stat_ref}${BLUE}) ${NORMAL}-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}"
+
+    wcet_handle_file="${stats_file}"
+    return 0
+}
+
+# wcet_test_handler:
+#   a dummy file handler for testing purposes
+#
+# shellcheck disable=SC2034
+function wcet_test_handler()
+{
+    wcet_test_handler=
+
+    wcet_test_handler="100 | 80 | 20.0 | stuff "
+    return 0;
 }
