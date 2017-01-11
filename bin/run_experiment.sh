@@ -59,10 +59,10 @@ function parse_options()
     VERBOSE_WORKFLOW=0  # print general informations along search
     VERBOSE_COMMANDS=0  # print relevant pipeline commands being executed
     SIMULATION_ONLY=0   # skip execution of pipeline commands (e.g.: clang, llvm, z3, optimathsat, etc.)
-    SKIP_EXISTING=0     # skip actions which would result in a file being overwritten
-                        # benchmark results included
+    SKIP_EXISTING=0     # 1  : skip actions which would result in a file being overwritten
+                        # 2+ : skip also benchmark results that have already been done
     OPTIND=1
-    while getopts "h?t:wfcos" opt; do
+    while getopts "h?t:wfcos:" opt; do
         case "$opt" in
             h|\?)
                 re_usage; exit 0; ;;
@@ -77,7 +77,7 @@ function parse_options()
             o)
                 SIMULATION_ONLY=1; ;;
             s)
-                SKIP_EXISTING=1; ;;
+                [[ "${OPTARG}" =~ ^[0-9]+$ ]] && SKIP_EXISTING=$((OPTARG))    || { re_usage; exit 1; }; ;;
             *)
                 re_usage; exit 1; ;;
         esac
@@ -118,8 +118,11 @@ DESCRIPTION
 
     -o      skip execution of any external command
 
-    -s      skip execution of any external command which would result
-            in a file being overwritten, benchmark results included
+    -s N    skip command execution which would cause a file being overwritten
+                - 0 : disabled
+                - 1 : skip execution of all external commands except omt solvers
+                - 2 : skip also omt solvers when result is already available
+            summary results files are always overwritten
 
 HANDLER UIDS
     z3_0                    -- z3          + default encoding
