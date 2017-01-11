@@ -5,9 +5,9 @@
 ###
 
 VERBOSE_WARNINGS=$((1))
-VERBOSE_COMMANDS=$((1))
+VERBOSE_COMMANDS=$((0))
 VERBOSE_WORKFLOW=$((1))
-SIMULATION_ONLY=$((1))
+SIMULATION_ONLY=$((0))
 FORCE_OVERWRITE=$((1))
 
 ###
@@ -39,7 +39,7 @@ function error()
     echo -e -n "[error]   $(basename "${0}"): " 1>&2
     [ -n "${1}" ] && echo -e -n "${1}: " 1>&2
     [ -n "${2}" ] && echo -e -n "row ${2}: " 1>&2
-    [ -n "${3}" ] && echo -e -n "\n[error] ${3}. " 1>&2
+    [ -n "${3}" ] && echo -e -n "\n[error]       ${3}. " 1>&2
     [ -n "${4}" ] && echo -e -n "(exit code: ${4})" 1>&2
     echo -e    "${NORMAL}"
     [ -n "${4}" ] && return "${4}" || return 1
@@ -52,7 +52,7 @@ function warning()
     echo -e -n "[warning] $(basename "${0}"): " 1>&2
     [ -n "${1}" ] && echo -e -n "${1}: " 1>&2
     [ -n "${2}" ] && echo -e -n "row ${2}: " 1>&2
-    [ -n "${3}" ] && echo -e -n "\n[warning] ${3}." 1>&2
+    [ -n "${3}" ] && echo -e -n "\n[warning]     ${3}." 1>&2
     echo -e    "${NORMAL}"
     return 0
 }
@@ -219,7 +219,12 @@ function wcet_gen_omt()
     [ -n "${5}" ] && print_matching=$((${5})) || print_matching=$((0))
     [ -n "${6}" ] && print_maxpath=$((${6}))  || print_maxpath=$((0))
     [[ "${1}" =~ .gen$ ]] && dst_base="${1:: -4}" || dst_base="${1}"
-    dst_file="${dst_base}.${encoding}.smt2"
+
+    if (( 0 != no_summaries )); then
+        dst_file="${dst_base}.${encoding}.smt2"
+    else
+        dst_file="${dst_base}.${encoding}.cuts.smt2"
+    fi
 
     options=("--encoding" "${encoding}")
     (( 0 != timeout ))        && options+=("--timeout" "${timeout}")
@@ -260,6 +265,7 @@ function wcet_update_timeout ()
             sed -i "1s/^/(set-option :timeout ${2}.0)\n/" "${1}"
         fi
     fi
+    return 0;
 }
 
 ###
@@ -286,7 +292,7 @@ function wcet_run_optimathsat ()
 
     if (( 0 == SIMULATION_ONLY )); then
         /usr/bin/time -f "# real-time: %e" optimathsat "${@:3}" < "${1}" > "${2}" 2>&1 ||
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat error" "${?}"; return "${?}"; };
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat error, see <${2}>" "${?}"; return "${?}"; };
     fi
 
     wcet_run_optimathsat="${2}"
@@ -312,8 +318,9 @@ function wcet_run_z3 ()
     log_cmd "z3 ${*:3} \"${1}\" > \"${2}\" 2>&1"
 
     if (( 0 == SIMULATION_ONLY )); then
-        sed 's/\((maximize .*\) \(:.* :.*)\)/\1)/' "${1}" | /usr/bin/time -f "# real-time: %e" z3 -in -smt2 "${@:3}" > "${2}" 2>&1 ||
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 error" "${?}"; return "${?}"; };
+        sed 's/\((set-option :timeout [0-9][0-9]*\).0)/\1000.0)/;s/\((maximize .*\) \(:.* :.*)\)/\1)/' "${1}" | \
+            /usr/bin/time -f "# real-time: %e" z3 -in -smt2 "${@:3}" > "${2}" 2>&1 ||
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 error, see <${2}>" "${?}"; return "${?}"; };
     fi
 
     wcet_run_z3="${2}"
@@ -406,10 +413,10 @@ function wcet_parse_output ()
     declare -A args
 
     is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}" # smt2 formula
-    is_readable_file "${2}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}" # optimathsat output
+    is_readable_file "${2}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}" # optimathsat/z3 output
 
-    bc_file="${1:: -7}.bc"
-    [ -f "${bc_file}" ] && [ -r "${bc_file}" ] || bc_file="${1:: -7}"
+    bc_file="${1/\.[0-9]*\.smt2/}.bc"
+    [ -f "${bc_file}" ] && [ -r "${bc_file}" ] || bc_file="${1/\.[0-9]?(\.cuts)\.smt2/}"
     is_readable_file "${bc_file}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     args["llvm_size"]="$(llvm-dis -o - "${bc_file}"          | wc -l)"
@@ -422,10 +429,14 @@ function wcet_parse_output ()
 
     if grep -q "# Optimum:" "${2}"; then
         args["opt_value"]="$(grep "Optimum" "${2}"         | cut -d\  -f 3)"
-    elif grep "(objectives" "${2}"; then
+    elif grep -q "(objectives" "${2}"; then
         args["opt_value"]="$(grep "objectives" -A 1 "${2}" | tail -n 1 | cut -d\  -f 3 | sed 's/)//')"
     else
         error "${FUNCNAME[0]}" "${LINENO}" "nothing to parse" && exit "${?}"
+    fi
+
+    if grep -q "^unknown$" "${2}" || grep -q "^unsat$" "${2}" || grep -q "Timeout reached" "${2}"; then
+        args["opt_value"]="${args["max_path"]}"
     fi
 
     args["gain"]=$(awk -v MAX="${args["max_path"]}" -v OPT="${args["opt_value"]}" \
@@ -447,8 +458,8 @@ function wcet_parse_output ()
 #   the result within a similar folder structure in the target directory
 #       ${1}        -- full path to the benchmark directory
 #       ${2}        -- full path to the statistics directory
-#       [...]       -- keywords `{*}` of the `wcet_{*}_handler` functions
-#                      to be used for dealing with each file
+#       [...]       -- keywords `{*}`, where `{*}` is the id
+#                      of a handler with name `wcet_{*}_handler`
 #
 # shellcheck disable=SC2030
 function wcet_run_experiment ()
@@ -466,9 +477,9 @@ function wcet_run_experiment ()
         file_name="${file%.*}"
         file_ext="${file##*.}"
 
-        # skip `.bc` if `.c` exists
+        # skip `.bc` if original `.c` exists
         [ "${file_ext}" = "bc" ] && [ -f "${file_name}.c" ] && [ -r "${file_name}.c" ] && \
-            { warning "${FUNCNAME[0]}" "$((LINENO - 1))" "skipped file <${file}>"; continue; }
+            { continue; }
 
         for test_conf in "${@:3}"
         do
@@ -478,7 +489,6 @@ function wcet_run_experiment ()
             wcet_replicate_dirtree "${1}" "${dest_dir}" "${file}" || return "${?}"
 
             wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}"
-
         done
     done
 }
@@ -497,17 +507,21 @@ function wcet_replicate_dirtree ()
 {
     wcet_replicate_dirtree= ;
 
+    local dest_file=
+
     is_directory "${1}"     || return "${?}"
     is_readable_file "${3}" || return "${?}"
 
     mkdir -p "${2}" 2>/dev/null || \
         { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to create directory <${2}>" "${?}"; return "${?}"; };
 
-    mkdir -p "$(dirname "${3}")" "${2}" 2>/dev/null || \
+    dest_file="${3/"${1}"/"${2}"}"
+    dest_file="${dest_file%.*}"
+
+    mkdir -p "$(dirname "${dest_file}")" 2>/dev/null || \
         { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to replicate folder tree" "${?}"; return "${?}"; };
 
-    wcet_replicate_dirtree="${3/"${1}"/"${2}"}"
-    wcet_replicate_dirtree="${wcet_replicate_dirtree%.*}"
+    wcet_replicate_dirtree="${dest_file}"
     return 0
 }
 
@@ -550,7 +564,7 @@ function wcet_handle_file ()
     #   - should generate omt formula of the right encoding
     #   - should run the right omt solver
     #   - should save in ${func_name} the formatted string with collected data
-    eval "${func_name} ${*:1}" || \
+    eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\"" || \
         { error "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
 
     # 4. store data
@@ -562,11 +576,15 @@ function wcet_handle_file ()
     echo "${!func_name}" >> "${stats_file}"
 
     # 5. log test
-    stat_max="$(echo "${!func_name}"  | cut -d\| -f 1 | sed 's/ //g')"
-    stat_opt="$(echo "${!func_name}"  | cut -d\| -f 2 | sed 's/ //g')"
-    stat_gain="$(echo "${!func_name}" | cut -d\| -f 3 | sed 's/ //g')"
-    stat_ref="$(basename "${1%.*}")"
-    log "${BLUE}${func_name}(${NORMAL}${stat_ref}${BLUE}) ${NORMAL}-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}"
+    stat_max="$(echo "${!func_name}"  | cut -d\| -f 2 | sed 's/ //g')"
+    stat_opt="$(echo "${!func_name}"  | cut -d\| -f 3 | sed 's/ //g')"
+    stat_gain="$(echo "${!func_name}" | cut -d\| -f 4 | sed 's/ //g')"
+    stat_time="$(echo "${!func_name}" | cut -d\| -f 6 | sed 's/ //g')"
+    stat_ref="$(basename "${2%.*}")"
+    prefix="${BLUE}$(basename "${1%.*}")(${NORMAL}${stat_ref}${BLUE}) ${NORMAL}"
+    suffix="-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}, time: ${BLUE}${stat_time}s${NORMAL}"
+    log_str="$(printf "%-80s %s" "${prefix}" "${suffix}")"
+    log "${log_str}"
 
     wcet_handle_file="${stats_file}"
     return 0
