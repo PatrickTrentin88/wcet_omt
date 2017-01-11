@@ -1,14 +1,10 @@
 #!/bin/bash
 
 ###
-### load functions library
+### GLOBALS
 ###
 
-DIR_BASE="$(realpath "$(dirname "$(readlink -f "${0}")")"/../..)"
-source "${DIR_BASE}/bin/wcet_lib/wcet_lib.sh"
-
-source "${DIR_BASE}/.wcet_omt.bashrc" || \
-    { error "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
+LOC_WCET_HANDLERS="$(realpath "$(dirname "${BASH_SOURCE[0]}" )" )"
 
 TIMEOUT=$((60))
 
@@ -295,21 +291,34 @@ function wcet_optimathsat_2_cuts_dl_3_handler
 ### TESTING
 ###
 
-# e.g.:
-# wcet_run_experiment "<bench_dir>" "<stats_dir>" "optimathsat_0_cuts" "z3_0_cuts"
+function test_handlers () {
 
-wcet_run_experiment "bench" "stats" \
-    "z3_0" \
-    "z3_0_cuts" \
-    "optimathsat_0" \
-    "optimathsat_0_cuts" \
-    "optimathsat_1_sn" \
-    "optimathsat_1_cuts_sn" \
-    "optimathsat_2" \
-    "optimathsat_2_cuts" \
-    "optimathsat_2_dl_1" \
-    "optimathsat_2_cuts_dl_1" \
-#    "optimathsat_2_dl_2" \
-#    "optimathsat_2_cuts_dl_2" \
-#    "optimathsat_2_dl_3" \
-#    "optimathsat_2_cuts_dl_3" \
+    DIR_BASE="$(realpath "${LOC_WCET_HANDLERS}"/../../)"
+    source "${DIR_BASE}/bin/wcet_lib/wcet_lib.sh"
+
+    source "${DIR_BASE}/.wcet_omt.bashrc" || \
+        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
+
+    log "Handlers Test ..."
+
+    wcet_run_experiment "${DIR_BASE}/test/bench" "${DIR_BASE}/test/stats" \
+        "z3_0" \
+        "z3_0_cuts" \
+        "optimathsat_0" \
+        "optimathsat_0_cuts" \
+        "optimathsat_1_sn" \
+        "optimathsat_1_cuts_sn" \
+        "optimathsat_2" \
+        "optimathsat_2_cuts" \
+        "optimathsat_2_dl_1" \
+        "optimathsat_2_cuts_dl_1" \
+        || { log "... failure!"; return 1; };
+#       "optimathsat_2_dl_2" \
+#       "optimathsat_2_cuts_dl_2" \
+#       "optimathsat_2_dl_3" \
+#       "optimathsat_2_cuts_dl_3" \
+
+    log "... success!"
+
+    return 0;
+}
