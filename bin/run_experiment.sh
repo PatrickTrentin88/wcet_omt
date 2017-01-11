@@ -59,11 +59,10 @@ function parse_options()
     VERBOSE_WARNINGS=0  # print warnings [errors are always printed]
     VERBOSE_WORKFLOW=0  # print general informations along search
     VERBOSE_COMMANDS=0  # print relevant pipeline commands being executed
-    SIMULATION_ONLY=0   # skip execution of pipeline commands (e.g.: clang, llvm, z3, optimathsat, etc.)
     SKIP_EXISTING=0     # 1  : skip actions which would result in a file being overwritten
                         # 2+ : skip also benchmark results that have already been done
     OPTIND=1
-    while getopts "h?t:wfcos:" opt; do
+    while getopts "h?t:wfcs:" opt; do
         case "$opt" in
             h|\?)
                 re_usage; exit 0; ;;
@@ -75,8 +74,6 @@ function parse_options()
                 VERBOSE_WORKFLOW=1; ;;
             c)
                 VERBOSE_COMMANDS=1; ;;
-            o)
-                SIMULATION_ONLY=1; ;;
             s)
                 [[ "${OPTARG}" =~ ^[0-9]+$ ]] && SKIP_EXISTING=$((OPTARG))    || { re_usage; exit 1; }; ;;
             *)
@@ -116,8 +113,6 @@ DESCRIPTION
     -f      enable print of general information
 
     -c      enable print of calls to external commands
-
-    -o      skip execution of any external command
 
     -s N    skip command execution which would cause a file being overwritten
                 - 0 : disabled

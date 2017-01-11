@@ -9,7 +9,6 @@ LOC_WCET_LIB="$(realpath "$(dirname "${BASH_SOURCE[0]}" )" )"
 VERBOSE_WARNINGS=$((0))
 VERBOSE_COMMANDS=$((0))
 VERBOSE_WORKFLOW=$((0))
-SIMULATION_ONLY=$((0))
 SKIP_EXISTING=$((0))
 
 ###
@@ -33,10 +32,8 @@ function wcet_gen_bytecode()
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "clang -emit-llvm -c \"${1}\" -o \"${dst_file}\""
-        if (( 0 == SIMULATION_ONLY )); then
-            clang -emit-llvm -c "${1}" -o "${dst_file}" || \
-                { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to generate bytecode" "${?}"; return "${?}"; };
-        fi
+        clang -emit-llvm -c "${1}" -o "${dst_file}" || \
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to generate bytecode" "${?}"; return "${?}"; };
     fi
 
     wcet_gen_bytecode="${dst_file}"
@@ -61,15 +58,13 @@ function wcet_bytecode_optimization()
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "pagai -i \"${1}\" --dump-ll --wcet --loop-unroll > \"${dst_file}\""
-        if (( 0 == SIMULATION_ONLY )); then
-            pagai -i "${1}" --dump-ll --wcet --loop-unroll > "${dst_file}" || \
-                { error "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
+        pagai -i "${1}" --dump-ll --wcet --loop-unroll > "${dst_file}" || \
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
-            # pagai does not set error status
-            errmsg="$(head -n 1 "${dst_file}" | grep "ERROR" | cut -d\  -f 2-)"
-            if [ -n "${errmsg}" ]; then
-                error "${FUNCNAME[0]}" "$((LINENO - 6))" "${errmsg:: -1}"; return "${?}";
-            fi
+        # pagai does not set error status
+        errmsg="$(head -n 1 "${dst_file}" | grep "ERROR" | cut -d\  -f 2-)"
+        if [ -n "${errmsg}" ]; then
+            error "${FUNCNAME[0]}" "$((LINENO - 6))" "${errmsg:: -1}"; return "${?}";
         fi
     fi
 
@@ -77,10 +72,8 @@ function wcet_bytecode_optimization()
     dst_file="${dst_file::-3}.bc"
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "llvm-as -o \"${dst_file}\" \"${src_file}\""
-        if (( 0 == SIMULATION_ONLY )); then
-            llvm-as -o "${src_file}" "${dst_file}" || \
-                { error "${FUNCNAME[0]}" "$((LINENO - 1))" "llvm-as error" "${?}"; return "${?}"; };
-        fi
+        llvm-as -o "${src_file}" "${dst_file}" || \
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "llvm-as error" "${?}"; return "${?}"; };
     fi
 
     wcet_bytecode_optimization="${dst_file}"
@@ -106,15 +99,13 @@ function wcet_gen_blocks()
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "pagai -i \"${1}\" -s \"${solver}\" --wcet --printformula --skipnonlinear --loop-unroll > \"${dst_file}\""
-        if (( 0 == SIMULATION_ONLY )); then
-            pagai -i "${1}" -s "${solver}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
-                { error "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
+        pagai -i "${1}" -s "${solver}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
-            # pagai does not set error status
-            errmsg="$(head -n 1 "${dst_file}" | grep "ERROR" | cut -d\  -f 2-)"
-            if [ -n "${errmsg}" ]; then
-                error "${FUNCNAME[0]}" "$((LINENO - 6))" "${errmsg:: -1}"; return "${?}";
-            fi
+        # pagai does not set error status
+        errmsg="$(head -n 1 "${dst_file}" | grep "ERROR" | cut -d\  -f 2-)"
+        if [ -n "${errmsg}" ]; then
+            error "${FUNCNAME[0]}" "$((LINENO - 6))" "${errmsg:: -1}"; return "${?}";
         fi
     fi
 
@@ -165,11 +156,9 @@ function wcet_gen_omt()
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "wcet_generator.py ${options[*]} \"${1}\" > \"${dst_file}\""
-        if (( 0 == SIMULATION_ONLY )); then
-            # ignore shellcheck: expansions intended
-            wcet_generator.py "${options[@]}" "${1}" > "${dst_file}" || \
-                { error "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}"; };
-        fi
+        # ignore shellcheck: expansions intended
+        wcet_generator.py "${options[@]}" "${1}" > "${dst_file}" || \
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}"; };
     fi
 
     wcet_gen_omt="${dst_file}"
@@ -228,10 +217,8 @@ function wcet_run_optimathsat ()
     if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${2}" -a -r "${2}" \) ; then
         log_cmd "optimathsat ${*:3} < \"${1}\" > \"${2}\" 2>&1"
 
-        if (( 0 == SIMULATION_ONLY )); then
-            /usr/bin/time -f "# real-time: %e" optimathsat "${@:3}" < "${1}" > "${2}" 2>&1 ||
-                { error "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat error, see <${2}>" "${?}"; return "${?}"; };
-        fi
+        /usr/bin/time -f "# real-time: %e" optimathsat "${@:3}" < "${1}" > "${2}" 2>&1 ||
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat error, see <${2}>" "${?}"; return "${?}"; };
     fi
 
     wcet_run_optimathsat="${2}"
@@ -257,11 +244,9 @@ function wcet_run_z3 ()
     if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${2}" -a -r "${2}" \) ; then
         log_cmd "z3 ${*:3} \"${1}\" > \"${2}\" 2>&1"
 
-        if (( 0 == SIMULATION_ONLY )); then
-            sed 's/\((set-option :timeout [0-9][0-9]*\).0)/\1000.0)/;s/\((maximize .*\) \(:.* :.*)\)/\1)/' "${1}" | \
-                /usr/bin/time -f "# real-time: %e" z3 -in -smt2 "${@:3}" > "${2}" 2>&1 ||
-                { error "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 error, see <${2}>" "${?}"; return "${?}"; };
-        fi
+        sed 's/\((set-option :timeout [0-9][0-9]*\).0)/\1000.0)/;s/\((maximize .*\) \(:.* :.*)\)/\1)/' "${1}" | \
+            /usr/bin/time -f "# real-time: %e" z3 -in -smt2 "${@:3}" > "${2}" 2>&1 ||
+            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 error, see <${2}>" "${?}"; return "${?}"; };
     fi
 
     wcet_run_z3="${2}"
