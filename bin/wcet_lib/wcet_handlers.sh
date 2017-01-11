@@ -294,6 +294,7 @@ function wcet_optimathsat_2_cuts_dl_3_handler
 function test_handlers () {
 
     DIR_BASE="$(realpath "${LOC_WCET_HANDLERS}"/../../)"
+    source "${DIR_BASE}/bin/wcet_lib/generic_lib.sh"
     source "${DIR_BASE}/bin/wcet_lib/wcet_lib.sh"
 
     source "${DIR_BASE}/.wcet_omt.bashrc" || \

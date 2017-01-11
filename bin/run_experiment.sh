@@ -40,6 +40,7 @@ function load_libraries()
 {
     DIR_BASE="$(realpath "${LOC_RUN_EXPERIMENT}"/../)"
 
+    source "${DIR_BASE}/bin/wcet_lib/generic_lib.sh"   || return 1;
     source "${DIR_BASE}/bin/wcet_lib/wcet_lib.sh"      || return 1;
     source "${DIR_BASE}/bin/wcet_lib/wcet_handlers.sh" || return 1;
     source "${DIR_BASE}/.wcet_omt.bashrc"              || \
