@@ -299,6 +299,8 @@ function test_handlers () {
     source "${DIR_BASE}/.wcet_omt.bashrc" || \
         { error "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
 
+	VERBOSE_WORKFLOW=1
+
     log "Handlers Test ..."
 
     wcet_run_experiment "${DIR_BASE}/test/bench" "${DIR_BASE}/test/stats" \
