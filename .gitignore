@@ -95,3 +95,6 @@ z3
 *.swp
 *.swo
 .wcet_omt.bashrc
+*.smt2
+*.ll
+*.gen
