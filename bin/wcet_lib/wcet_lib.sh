@@ -350,7 +350,8 @@ function wcet_print_header()
 function wcet_parse_output ()
 {
     wcet_parse_output=
-    local bc_file= ;
+    local bc_file= ; local is_unknown=  ; local is_unsat= ; local is_sat= ;
+    local solver=  ; local has_timeout= ;
     declare -A args
 
     is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}" # smt2 formula
@@ -368,22 +369,48 @@ function wcet_parse_output ()
     args["smt2_file"]="${1}"
     args["out_file"]="${2}"
 
+    # opt value + solver
+
     if grep -q "# Optimum:" "${2}"; then
         args["opt_value"]="$(grep "Optimum" "${2}"         | cut -d\  -f 3)"
+        solver="optimathsat"
     elif grep -q "(objectives" "${2}"; then
         args["opt_value"]="$(grep "objectives" -A 1 "${2}" | tail -n 1 | cut -d\  -f 3 | sed 's/)//')"
+        solver="z3"
     else
         error "${FUNCNAME[0]}" "${LINENO}" "nothing to parse" && exit "${?}"
     fi
 
-    if grep -q "^unknown$" "${2}" || grep -q "^unsat$" "${2}" || grep -q "Timeout reached" "${2}"; then
+    # status
+
+    is_unknown="$(grep -ci "^unknown$" "${2}")"
+    is_unsat="$(grep -ci "^unsat$" "${2}")"
+    is_sat="$(grep -ci "^sat$" "${2}")"
+
+    (( ( is_unknown + is_unsat + is_sat ) == 1 )) || \
+        { error "${FUNCNAME[0]}" "${LINENO}" "parsed multiple search statuses, see <${2}>"; exit 1; };
+
+    (( is_unknown )) && args["status"]="unknown"
+    (( is_unsat ))   && args["status"]="unsat"
+    (( is_sat ))     && args["status"]="sat"
+
+    # timeout
+
+    [[ "${solver}" =~ ^optimathsat$ ]] && has_timeout="$(grep -ci "Timeout reached" "${2}")"
+    [[ "${solver}" =~ ^z3$ ]]          && has_timeout=$((is_unknown))
+    args["timeout"]=$((has_timeout))
+
+    if (( (has_timeout + is_unsat) >= 1 )) ; then   # discard any partial result
         args["opt_value"]="${args["max_path"]}"
     fi
 
+    # error
+
+    num_errors="$(awk '{ s=tolower($0) } s~/error/ && s!~/# error/ { count++ } END { print count }' "${2}")"
+    args["errors"]=$((num_errors))
+
     args["gain"]=$(awk -v MAX="${args["max_path"]}" -v OPT="${args["opt_value"]}" \
         "BEGIN {printf \"%.2f\", ((MAX - OPT) * 100 / MAX)}")
-
-    # TODO: set flags for files with errors / timeouts
 
     wcet_parse_output="$(wcet_print_data "$(declare -p args)")"
     return 0
