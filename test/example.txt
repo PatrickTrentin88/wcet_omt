@@ -1,0 +1,13 @@
+~$ source wcet_omt/bin/wcet_lib/wcet_handlers.sh
+~$ test_handlers
+[log]  << z3_0(statemate)                          -- max: 997, opt: 764, gain: 23.37 %, time: 5.86s
+[log]  << z3_0_cuts(statemate)                     -- max: 997, opt: 764, gain: 23.37 %, time: 5.95s
+[log]  << optimathsat_0(statemate)                 -- max: 997, opt: 997, gain: 0.00 %, time: 60.53s
+[log]  << optimathsat_0_cuts(statemate)            -- max: 997, opt: 764, gain: 23.37 %, time: 18.58s
+[log]  << optimathsat_1_sn(statemate)              -- max: 997, opt: 764, gain: 23.37 %, time: 18.30s
+[log]  << optimathsat_1_cuts_sn(statemate)         -- max: 997, opt: 764, gain: 23.37 %, time: 38.71s
+[log]  << optimathsat_2(statemate)                 -- max: 997, opt: 997, gain: 0.00 %, time: 60.46s
+[log]  << optimathsat_2_cuts(statemate)            -- max: 997, opt: 997, gain: 0.00 %, time: 60.30s
+[log]  << optimathsat_2_dl_1(statemate)            -- max: 997, opt: 764, gain: 23.37 %, time: 34.62s
+[log]  << optimathsat_2_cuts_dl_1(statemate)       -- max: 997, opt: 764, gain: 23.37 %, time: 42.07s
+~$
