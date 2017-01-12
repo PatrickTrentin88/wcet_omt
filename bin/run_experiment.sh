@@ -19,11 +19,7 @@ function main ()
 
     # TODO: test components
 
-    log "start experiment ..."
-
     wcet_run_experiment "${@}" || {            return "${?}"; };
-
-    log "... end experiment."
 
     return 0;
 }
