@@ -6,7 +6,7 @@ the project maintainer <https://github.com/PatrickTrentin88/wcet_omt/>.
 
 # INSTALLATION
 
-The project comes with an installation script* which **attempts** to download and configure the 
+The project comes with an *installation script* which **attempts** to download and configure the 
 required dependencies. In case of **failure**, please refer to `wcet_omt/setup_tools/REAME.txt` 
 for **manual installation**.
 
@@ -28,7 +28,7 @@ To run a simple experiment, type
 Here, `optimathsat_0` and `optimathsat_2_dl_1` are compilation **targets**, scroll this
 file to get for more information.
 
-This will result in the following *folder structure* being created:
+As the experiment runs, the following *folder structure* is added to the file-system:
     
     wcet_omt
     |--stats
@@ -50,8 +50,8 @@ This will result in the following *folder structure* being created:
              |-- benchmark_N.log
 
 To modify the experimental conditions (*e.g. change TIMEOUT*), you should edit
-the `Makefile` within the target benchmark directory. Please avoid modifying
-`Makefile.master`.
+the `Makefile` within the target benchmark directory. Please avoid changes to the
+`Makefile.master` file.
 
 
 ### TARGETS
