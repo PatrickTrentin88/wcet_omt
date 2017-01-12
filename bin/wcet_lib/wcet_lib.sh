@@ -293,12 +293,15 @@ function wcet_print_data()
 {
     eval "declare -A argArr=${1#*=}"
 
-    printf "| %-12s | %-12s | %-12s | %-12s | %-12s | %-12s | %-12s | %-32s | %-32s |\n" \
+    printf "| %-12s | %-12s | %-12s | %-12s | %-12s | %-12s | %-12s | %-12s | %-12s | %-12s | %-64s | %-64s |\n" \
         "${argArr["max_path"]}"   \
         "${argArr["opt_value"]}"  \
         "${argArr["gain"]}"       \
         "${argArr["num_cuts"]}"   \
         "${argArr["real_time"]}"  \
+        "${argArr["status"]}"     \
+        "${argArr["timeout"]}"    \
+        "${argArr["errors"]}"     \
         "${argArr["llvm_size"]}"  \
         "${argArr["num_blocks"]}" \
         "${argArr["smt2_file"]}"  \
@@ -320,6 +323,9 @@ function wcet_print_header()
     args["smt2_file"]="smt2 file"
     args["out_file"]="output file"
     args["gain"]="gain (%)"
+    args["status"]="status"
+    args["timeout"]="timeout"
+    args["errors"]="# errors"
 
     wcet_print_data "$(declare -p args)"
 }
@@ -476,7 +482,7 @@ function wcet_replicate_dirtree ()
         { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to replicate folder tree" "${?}"; return "${?}"; };
 
     stats_file="${2}/$(basename "${2}").log"
-    echo -n "" > "${stats_file}" || \
+    wcet_print_header > "${stats_file}" || \
         { error "${FUNCNAME[0]}" "$((LINENO - 1))" "<${stats_file}> can not be created or overwritten" "${?}"; return "${?}"; };
 
     wcet_replicate_dirtree="${dest_file}"
