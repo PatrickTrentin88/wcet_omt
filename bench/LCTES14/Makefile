@@ -27,4 +27,4 @@ endif											# -c   : print calls to external commands
 ###                                           ###
 
 all : \
-	z3_0
+	z3_0_cuts
