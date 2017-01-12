@@ -1,6 +1,6 @@
 # REQUIREMENTS
 
-This project has been tested on *linux-gnu* only. In case you need support for another OS, contact
+This project has been tested on *linux-gnu* only. In case support for another OS is needed, contact
 the project maintainer <https://github.com/PatrickTrentin88/wcet_omt/>.
 
 
@@ -49,9 +49,8 @@ As the experiment runs, the following *folder structure* is added to the file-sy
              |-- ...
              |-- benchmark_N.log
 
-To modify the experimental conditions (*e.g. change TIMEOUT*), you should edit
-the `Makefile` within the target benchmark directory. Please avoid changes to the
-`Makefile.master` file.
+To modify the experimental conditions (*e.g. change TIMEOUT*), the `Makefile` within the target 
+benchmark directory should be *edited*. Please avoid any change to `Makefile.master`.
 
 
 ### TARGETS
