@@ -1,4 +1,4 @@
-# INSTALLATION TEST
+## TESTING INSTALLATION
 
 In order to check that the *probject* is successfully installed, please
 run the following test:
@@ -28,7 +28,7 @@ In case of **errors**, please enable the *verbose* mode
 Get in touch with the project maintainer in case of unsolvable errors.
 
 
-### HANDLERS TESTING
+#### HANDLERS TESTING
 
 The following instructions allow for testing *benchmark handlers* only,
 rather than the whole experimental environment. Type:
