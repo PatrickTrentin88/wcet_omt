@@ -6,11 +6,10 @@ Please report any issue you may find on this or any other platform.
 
                     ### INSTRUCTIONS ###
 
-After the successful installation of all tools, the environment
-variables should be updated by executing `wcet_omt/bin/setup_env.sh`.
-This operation checks that the environment is properly installed and,
-if so, stores environment variables in the hidden file 
-`.wcet_omt/.wcet_omt.bashrc`.
+After the successful installation of all tools, environment
+variables should be updated using `wcet_omt/bin/setup_env.sh`.
+This script checks that the project is properly installed and,
+if so, it stores environment in `wcet_omt/.wcet_omt.bashrc`.
 
 
 1) pagai (http://pagai.forge.imag.fr/)
