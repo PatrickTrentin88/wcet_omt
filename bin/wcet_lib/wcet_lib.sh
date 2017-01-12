@@ -587,6 +587,6 @@ function wcet_delete_files ()
         [ "${file_ext}" != "bc" ] || [ -f "${file_name}.c" ] || [ -r "${file_name}.c" ] || \
             { continue; }
 
-        rm -v ${file}
+        rm -v "${file}"
     done
 }
