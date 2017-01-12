@@ -247,6 +247,10 @@ pathprepend() {
 if (( NUM_ERRORS != 0 )); then
     (( 0 != VERBOSE )) && echo -e -n "\n... failure! "
     echo "${NUM_ERRORS} error(s)" 2>/dev/null
+
+    # prevent partially installed environment from being used
+    err_code='\necho "error: incorrect environment, please run <make install> and check for any error";\nreturn 1;\n\n'
+    sed -i "2s/^/${err_code}/" "${BASHRC}"
 else
     (( 0 != VERBOSE )) && echo -e "\n... success!\n"
     echo "Environment stored in <${BASHRC}>"
