@@ -21,7 +21,7 @@ def main():
             smt_txt, graph_txt = fd.read().rsplit('-------', 1)
     except Exception:
         print(";; ERROR: file `" + opts.filename + "` does not exist or can not be read, quitting.\n")
-        quit()
+        quit(1)
 
     # preload initial environment and graph
     env = preload_smt_env(smt_txt)
@@ -35,7 +35,7 @@ def main():
                 graph.update_costs_with_matchings(matchings)
         except Exception:
             print(";; ERROR: matching file does not exist, ignored.")
-            quit()
+            quit(1)
 
     # Compute and add cuts
     if not opts.nosummaries:
