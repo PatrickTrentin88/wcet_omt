@@ -16,12 +16,15 @@ Type
 
 in the root directory and *follow the instructions*.
 
+# TESTING INSTALLATION
+
+Follow the instructions found in `wcet_omt/test/README.md`.
 
 # USAGE
 
 To run a simple experiment, type
 
-    ~$ pushd bench/test
+    ~$ pushd test/bench
     ~$ make optimathsat_0 optimathsat_2_dl_1
     ~$ popd
 
@@ -31,23 +34,24 @@ file to get for more information.
 As the experiment runs, the following *folder structure* is added to the file-system:
     
     wcet_omt
-    |--stats
-       |--test
-          |--optimathsat_0
-          |  |-- optimathsat_0.log        # summary of relevant benchmark information
-          |  |-- benchmark_1.log
-          |  |-- ...
-          |  |-- benchmark_i.log          # the omt solver's output for i-th benchmark
-          |  |-- ...
-          |  |-- benchmark_N.log
-          |
-          |-- optimathsat_2_dl_1
-             |-- optimathsat_2_dl_1.log   # summary of relevant benchmark information
-             |-- benchmark_1.log
-             |-- ...
-             |-- benchmark_i.log          # the omt solver's output for i-th benchmark
-             |-- ...
-             |-- benchmark_N.log
+    |-- test
+        |-- stats
+            |-- bench
+                |--optimathsat_0
+                |  |-- optimathsat_0.log        # summary of relevant benchmark information
+                |  |-- benchmark_1.log
+                |  |-- ...
+                |  |-- benchmark_i.log          # the omt solver's output for i-th benchmark
+                |  |-- ...
+                |  |-- benchmark_N.log
+                |
+                |-- optimathsat_2_dl_1
+                    |-- optimathsat_2_dl_1.log   # summary of relevant benchmark information
+                    |-- benchmark_1.log
+                    |-- ...
+                    |-- benchmark_i.log          # the omt solver's output for i-th benchmark
+                    |-- ...
+                    |-- benchmark_N.log
 
 To modify the experimental conditions (*e.g. change TIMEOUT*), the `Makefile` within the target 
 benchmark directory should be *edited*. Please avoid any change to `Makefile.master`.

@@ -571,7 +571,7 @@ function wcet_test_handler()
 #
 function wcet_delete_files ()
 {
-    local file_name= ; local file_ext= ;
+    local file_name= ; local file_ext= ; local errors=$((0))
 
     is_directory "${1}" || return "${?}"
 
@@ -587,6 +587,8 @@ function wcet_delete_files ()
         [ "${file_ext}" != "bc" ] || [ -f "${file_name}.c" ] || [ -r "${file_name}.c" ] || \
             { continue; }
 
-        rm -v "${file}"
+        rm -v "${file}" || errors=$((errors + 1))
     done
+
+    return $((errors))
 }

@@ -5,13 +5,13 @@ include ../../Makefile.master
 ###                                           ###
 
 WCET_BENCH_DIR	:= $(realpath $(dir $(firstword $(MAKEFILE_LIST))))
-WCET_STATS_DIR	:= $(subst $(WCET_OMT_DIR),$(WCET_OMT_DIR)/stats,$(WCET_BENCH_DIR))
+WCET_STATS_DIR	:= $(subst $(WCET_OMT_DIR),$(WCET_OMT_DIR)/test/stats,$(WCET_BENCH_DIR))
 
 ###                                           ###
 ### user customizable variables               ###
 ###                                           ###
 
-WCET_TIMEOUT	:= 600							# seconds, 0: disabled
+WCET_TIMEOUT	:= 120							# seconds, 0: disabled
 WCET_RUN_FLAGS	:= -f -s 2						# default:
 												# -f   : print general information
 												# -s 0 : overwrite all files

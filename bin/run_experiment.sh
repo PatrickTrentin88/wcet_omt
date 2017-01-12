@@ -58,7 +58,7 @@ function parse_options()
     SKIP_EXISTING=0     # 1  : skip actions which would result in a file being overwritten
                         # 2+ : skip also benchmark results that have already been done
     OPTIND=1
-    while getopts "h?t:wfcs:" opt; do
+    while getopts "h?t:wfcs:r:" opt; do
         case "$opt" in
             h|\?)
                 re_usage; exit 0; ;;
@@ -72,6 +72,11 @@ function parse_options()
                 VERBOSE_COMMANDS=1; ;;
             s)
                 [[ "${OPTARG}" =~ ^[0-9]+$ ]] && SKIP_EXISTING=$((OPTARG))    || { re_usage; exit 1; }; ;;
+            r)
+                is_directory "${OPTARG}" "${FUNCNAME[@]}" "${LINENO}" || exit 1;
+                wcet_delete_files "${OPTARG}" || exit 1;
+                exit 0;
+            ;;
             *)
                 re_usage; exit 1; ;;
         esac
