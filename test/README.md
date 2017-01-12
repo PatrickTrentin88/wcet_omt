@@ -6,7 +6,7 @@ run the following test:
     ~$ pushd bench
     ~$ make all ; popd
 
-You should see the following output:
+The expected output is:
 
     [log]  << z3_0(statemate)                          -- max: 997, opt: 764, gain: 23.37 %, time: 5.88s
     [log]  << z3_0_cuts(statemate)                     -- max: 997, opt: 764, gain: 23.37 %, time: 5.95s
@@ -25,15 +25,18 @@ In case of **errors**, please enable the *verbose* mode
     ~$ export DEBUG=1
     ~$ make all ; popd
 
-Contact the author of the project in case of unsolvable errors.
+Get in touch with the project maintainer in case of unsolvable errors.
+
 
 ### HANDLERS TESTING
 
 The following instructions allow for testing *benchmark handlers* only,
-rather than the whole experimental environment. To do so, type:
+rather than the whole experimental environment. Type:
 
     ~$ source ../../wcet_omt/bin/wcet_lib/wcet_handlers.sh
     ~$ test_handlers
+
+The expected output is:
 
     [log]  << z3_0(statemate)                          -- max: 997, opt: 764, gain: 23.37 %, time: 5.86s
     [log]  << z3_0_cuts(statemate)                     -- max: 997, opt: 764, gain: 23.37 %, time: 5.95s
