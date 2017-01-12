@@ -1,10 +1,10 @@
-# REQUIREMENTS
+## REQUIREMENTS
 
 This project has been tested on *linux-gnu* only. In case support for another OS is needed, contact
 the project maintainer <https://github.com/PatrickTrentin88/wcet_omt/>.
 
 
-# INSTALLATION
+## INSTALLATION
 
 The project comes with an *installation script* which **attempts** to download and configure the 
 required dependencies. In case of **failure**, please refer to `wcet_omt/setup_tools/REAME.txt` 
@@ -16,11 +16,11 @@ Type
 
 in the root directory and *follow the instructions*.
 
-# TESTING INSTALLATION
+## TESTING INSTALLATION
 
 Follow the instructions found in `wcet_omt/test/README.md`.
 
-# USAGE
+## USAGE
 
 To run a simple experiment, type
 
@@ -57,7 +57,7 @@ To modify the experimental conditions (*e.g. change TIMEOUT*), the `Makefile` wi
 benchmark directory should be *edited*. Please avoid any change to `Makefile.master`.
 
 
-### TARGETS
+#### TARGETS
 
 Benchmark targets are defined in `Makefile.master`, and correspond to the list of **HANDLER_UIDS**
 mentioned by
@@ -86,7 +86,7 @@ and *solver parameters* wrapped into a *function* that acts as a *benchmark hand
 *handlers* are defined within `wcet_omt/bin/wcet_lib/wcet_handlers.sh`.
 
 
-### DEBUG
+#### DEBUG
 
 The scripts are designed to print any **error** that might be encountered. However, to keep the 
 output nice and clean, relevant debugging information is hidden by default. To enable it, type:
