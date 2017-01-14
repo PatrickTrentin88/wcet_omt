@@ -5,6 +5,7 @@
 ###
 
 LOC_WCET_LIB="$(realpath "$(dirname "${BASH_SOURCE[0]}" )" )"
+NAME_WCET_LIB="$(basename "${BASH_SOURCE[0]}" )"
 
 VERBOSE_WARNINGS=$((0))
 VERBOSE_COMMANDS=$((0))
@@ -27,13 +28,13 @@ function wcet_gen_bytecode()
     wcet_gen_bytecode=
     local dst_file=
 
-    is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
     [[ "${1}" =~ .c$ ]] && dst_file="${1:: -2}.bc" || dst_file="${1}.bc"
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "clang -emit-llvm -c \"${1}\" -o \"${dst_file}\""
         clang -emit-llvm -c "${1}" -o "${dst_file}" || \
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to generate bytecode" "${?}"; return "${?}"; };
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to generate bytecode" "${?}"; return "${?}"; };
     fi
 
     wcet_gen_bytecode="${dst_file}"
@@ -52,19 +53,19 @@ function wcet_bytecode_optimization()
     wcet_bytecode_optimization=
     local dst_file= ; local errmsg= ;
 
-    is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
     [[ "${1}" =~ .bc$ ]] && dst_file="${1:: -3}.opt.ll" || dst_file="${1}.opt.ll"
 
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "pagai -i \"${1}\" --dump-ll --wcet --loop-unroll > \"${dst_file}\""
         pagai -i "${1}" --dump-ll --wcet --loop-unroll > "${dst_file}" || \
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
         # pagai does not set error status
         errmsg="$(head -n 1 "${dst_file}" | grep "ERROR" | cut -d\  -f 2-)"
         if [ -n "${errmsg}" ]; then
-            error "${FUNCNAME[0]}" "$((LINENO - 6))" "${errmsg:: -1}"; return "${?}";
+            error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 6))" "${errmsg:: -1}"; return "${?}";
         fi
     fi
 
@@ -73,7 +74,7 @@ function wcet_bytecode_optimization()
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "llvm-as -o \"${dst_file}\" \"${src_file}\""
         llvm-as -o "${src_file}" "${dst_file}" || \
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "llvm-as error" "${?}"; return "${?}"; };
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "llvm-as error" "${?}"; return "${?}"; };
     fi
 
     wcet_bytecode_optimization="${dst_file}"
@@ -93,19 +94,19 @@ function wcet_gen_blocks()
     wcet_gen_blocks=
     local dst_file= ; local errmsg= ;
 
-    is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
     [[ "${1}" =~ .bc$ ]] && dst_file="${1:: -3}.gen" || dst_file="${1}.gen"
     (( ${#} == 2 )) && solver="${2}" || solver="z3";
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "pagai -i \"${1}\" -s \"${solver}\" --wcet --printformula --skipnonlinear --loop-unroll > \"${dst_file}\""
         pagai -i "${1}" -s "${solver}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
         # pagai does not set error status
         errmsg="$(head -n 1 "${dst_file}" | grep "ERROR" | cut -d\  -f 2-)"
         if [ -n "${errmsg}" ]; then
-            error "${FUNCNAME[0]}" "$((LINENO - 6))" "${errmsg:: -1}"; return "${?}";
+            error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 6))" "${errmsg:: -1}"; return "${?}";
         fi
     fi
 
@@ -134,7 +135,7 @@ function wcet_gen_omt()
     local encoding=      ; local timeout=  ; local no_summaries= ; local print_matching= ;
     local print_maxpath= ; local dst_base= ; local dst_file=     ; declare -a options    ;
 
-    is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
     [ -n "${2}" ] && (( 0 <= "${2}" )) && (( "${2}" <= 2 )) && encoding=$((${2})) || encoding=$((0))
     [ -n "${3}" ] && (( 0 <= "${3}" )) && timeout=$((${3})) || timeout=$((0))
     [ -n "${4}" ] && no_summaries=$((${4}))   || no_summaries=$((0))
@@ -158,7 +159,7 @@ function wcet_gen_omt()
         log_cmd "wcet_generator.py ${options[*]} \"${1}\" > \"${dst_file}\""
         # ignore shellcheck: expansions intended
         wcet_generator.py "${options[@]}" "${1}" > "${dst_file}" || \
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}"; };
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}"; };
     fi
 
     wcet_gen_omt="${dst_file}"
@@ -172,7 +173,7 @@ function wcet_gen_omt()
 #
 function wcet_update_timeout ()
 {
-    is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     [ -z "${2}" ] && set -- "${1}" "0"
 
@@ -211,14 +212,14 @@ function wcet_run_optimathsat ()
 {
     wcet_run_optimathsat=
 
-    is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
-    is_directory "$(dirname "${2}")" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_directory "$(dirname "${2}")" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${2}" -a -r "${2}" \) ; then
         log_cmd "optimathsat ${*:3} < \"${1}\" > \"${2}\" 2>&1"
 
         /usr/bin/time -f "# real-time: %e" optimathsat "${@:3}" < "${1}" > "${2}" 2>&1 ||
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat error, see <${2}>" "${?}"; return "${?}"; };
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat error, see <${2}>" "${?}"; return "${?}"; };
     fi
 
     wcet_run_optimathsat="${2}"
@@ -238,15 +239,15 @@ function wcet_run_z3 ()
 {
     wcet_run_z3=
 
-    is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
-    is_directory "$(dirname "${2}")" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_directory "$(dirname "${2}")" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${2}" -a -r "${2}" \) ; then
         log_cmd "z3 ${*:3} \"${1}\" > \"${2}\" 2>&1"
 
         sed 's/\((set-option :timeout [0-9][0-9]*\).0)/\1000.0)/;s/\((maximize .*\) \(:.* :.*)\)/\1)/' "${1}" | \
             /usr/bin/time -f "# real-time: %e" z3 -in -smt2 "${@:3}" > "${2}" 2>&1 ||
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 error, see <${2}>" "${?}"; return "${?}"; };
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 error, see <${2}>" "${?}"; return "${?}"; };
     fi
 
     wcet_run_z3="${2}"
@@ -274,7 +275,7 @@ function wcet_run_omt_solver ()
         wcet_run_optimathsat "${@:2}" || return "${?}"
         wcet_run_omt_solver="${wcet_run_optimathsat}"
     else
-        error "${FUNCNAME[0]}" "${LINENO}" "unknown smt2 solver <${1}>" && exit "${?}"
+        error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "unknown smt2 solver <${1}>" && exit "${?}"
     fi
 
     return 0;
@@ -345,12 +346,12 @@ function wcet_parse_output ()
     local solver=  ; local has_timeout= ;
     declare -A args
 
-    is_readable_file "${1}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}" # smt2 formula
-    is_readable_file "${2}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}" # optimathsat/z3 output
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}" # smt2 formula
+    is_readable_file "${2}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}" # optimathsat/z3 output
 
     bc_file="${1/\.[0-9]*\.smt2/}.bc"
     [ -f "${bc_file}" ] && [ -r "${bc_file}" ] || bc_file="${1/\.[0-9]?(\.cuts)\.smt2/}"
-    is_readable_file "${bc_file}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${bc_file}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     args["llvm_size"]="$(llvm-dis -o - "${bc_file}"          | wc -l)"
     args["num_blocks"]="$(grep -c "declare-fun b_" "${1}" )"
@@ -369,7 +370,7 @@ function wcet_parse_output ()
         args["opt_value"]="$(grep "objectives" -A 1 "${2}" | tail -n 1 | cut -d\  -f 3 | sed 's/)//')"
         solver="z3"
     else
-        error "${FUNCNAME[0]}" "${LINENO}" "nothing to parse" && exit "${?}"
+        error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "nothing to parse" && exit "${?}"
     fi
 
     # status
@@ -379,7 +380,7 @@ function wcet_parse_output ()
     is_sat="$(grep -ci "^sat$" "${2}")"
 
     (( ( is_unknown + is_unsat + is_sat ) == 1 )) || \
-        { error "${FUNCNAME[0]}" "${LINENO}" "parsed multiple search statuses, see <${2}>"; exit 1; };
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "parsed multiple search statuses, see <${2}>"; exit 1; };
 
     (( is_unknown )) && args["status"]="unknown"
     (( is_unsat ))   && args["status"]="unsat"
@@ -420,18 +421,16 @@ function wcet_parse_output ()
 #       [...]       -- keywords `{*}`, where `{*}` is the id
 #                      of a handler with name `wcet_{*}_handler`
 #
-# shellcheck disable=SC2030
 function wcet_run_experiment ()
 {
     local file_name= ; local file_ext= ;
 
-    is_directory "${1}" || return "${?}"
-    is_directory "${2}" || return "${?}"
+    is_directory "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_directory "${2}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     set -- "$(realpath "${1}")" "$(realpath "${2}")" "${@:3}"
 
-    find "${1}" \( -name "*.c" -o -name "*.bc" \) -print0 | \
-    while read -r -d $'\0' file
+    while read -r file
     do
         file_name="${file%.*}"
         file_ext="${file##*.}"
@@ -449,7 +448,7 @@ function wcet_run_experiment ()
 
             wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}"
         done
-    done
+    done < <(find "${1}" \( -name "*.c" -o -name "*.bc" \) )
 }
 
 # wcet_replicate_dirtree:
@@ -469,21 +468,21 @@ function wcet_replicate_dirtree ()
 
     local dest_file=
 
-    is_directory "${1}"     || return "${?}"
-    is_readable_file "${3}" || return "${?}"
+    is_directory "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}"     || return "${?}"
+    is_readable_file "${3}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     mkdir -p "${2}" 2>/dev/null || \
-        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to create directory <${2}>" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to create directory <${2}>" "${?}"; return "${?}"; };
 
     dest_file="${3/"${1}"/"${2}"}"
     dest_file="${dest_file%.*}"
 
     mkdir -p "$(dirname "${dest_file}")" 2>/dev/null || \
-        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to replicate folder tree" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to replicate folder tree" "${?}"; return "${?}"; };
 
     stats_file="${2}/$(basename "${2}").log"
     wcet_print_header > "${stats_file}" || \
-        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "<${stats_file}> can not be created or overwritten" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${stats_file}> can not be created or overwritten" "${?}"; return "${?}"; };
 
     wcet_replicate_dirtree="${dest_file}"
     return 0
@@ -507,34 +506,35 @@ function wcet_handle_file ()
     local func_name= ; local stats_file= ; local stat_max= ;
     local stat_opt=  ; local stat_gain=  ; local stat_ref= ;
 
-    is_readable_file "${2}" || return "${?}"
+    is_readable_file "${2}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     func_name="wcet_$(basename "${1}")_handler"
-    type -t "${func_name}" 2>/dev/null 1>&2 || { error "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> is not a function, built-in or command" "${?}"; return "${?}"; };
+    type -t "${func_name}" 2>/dev/null 1>&2 || \
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> is not a function, built-in or command" "${?}"; return "${?}"; };
 
     # 1. bytecode generation if file is `.c` source code
     if [ "${2##*.}" = "c" ]; then
         wcet_gen_bytecode "${2}" || \
-            { error "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate bytecode for <${2}>" "${?}"; return "${?}"; };
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate bytecode for <${2}>" "${?}"; return "${?}"; };
     else
         wcet_gen_bytecode="${2}"
     fi
 
     # 2. generate smt2 + blocks file
     wcet_gen_blocks "${wcet_gen_bytecode}" || \
-        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate smt2+blocks for <${wcet_gen_bytecode}>" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate smt2+blocks for <${wcet_gen_bytecode}>" "${?}"; return "${?}"; };
 
     # 3. call file handler for specific configuration
     #   - should generate omt formula of the right encoding
     #   - should run the right omt solver
     #   - should save in ${func_name} the formatted string with collected data
     eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\"" || \
-        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
 
     # 4. store data
     stats_file="${1}/$(basename "${1}").log"
     [ -n "${!func_name}" ] || \
-        { warning "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
+        { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
     echo "${!func_name}" >> "${stats_file}"
 
     # 5. log test
@@ -573,12 +573,11 @@ function wcet_delete_files ()
 {
     local file_name= ; local file_ext= ; local errors=$((0))
 
-    is_directory "${1}" || return "${?}"
+    is_directory "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
     set -- "$(realpath "${1}")"
 
-    find "${1}" \( -name "*.bc" -o -name "*.gen" -o -name "*.ll" -o -name "*.smt2" -o -name "*.longestsyntactic" -o -name "*.llvmtosmtmatch" \) -type f -print0 | \
-    while read -r -d $'\0' file
+    while read -r file
     do
         file_name="${file%.*}"
         file_ext="${file##*.}"
@@ -588,7 +587,7 @@ function wcet_delete_files ()
             { continue; }
 
         rm -v "${file}" || errors=$((errors + 1))
-    done
+    done < <(find "${1}" \( -name "*.bc" -o -name "*.gen" -o -name "*.ll" -o -name "*.smt2" -o -name "*.longestsyntactic" -o -name "*.llvmtosmtmatch" \) -type f)
 
     return $((errors))
 }

@@ -1,10 +1,11 @@
 #!/bin/bash
 
 ###
-### load functions library
+###
 ###
 
 LOC_RUN_EXPERIMENT="$(realpath "$(dirname "${BASH_SOURCE[0]}" )" )"
+NAME_RUN_EXPERIMENT="$(basename "${BASH_SOURCE[0]}" )"
 
 ###
 ### run experiment
@@ -17,9 +18,10 @@ function main ()
 
     parse_options "${@}" && shift $((OPTIND - 1)) || return "${?}";
 
-    # TODO: test components
+    env_test || \
+        { error "${NAME_RUN_EXPERIMENT}" "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
 
-    wcet_run_experiment "${@}" || {            return "${?}"; };
+    wcet_run_experiment "${@}" || { return "${?}"; };
 
     return 0;
 }
@@ -39,8 +41,9 @@ function load_libraries()
     source "${DIR_BASE}/bin/wcet_lib/generic_lib.sh"   || return 1;
     source "${DIR_BASE}/bin/wcet_lib/wcet_lib.sh"      || return 1;
     source "${DIR_BASE}/bin/wcet_lib/wcet_handlers.sh" || return 1;
+    source "${DIR_BASE}/bin/setup_tools/setup_env.sh"  || return 1;
     source "${DIR_BASE}/.wcet_omt.bashrc"              || \
-        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
+        { error "${NAME_RUN_EXPERIMENT}" "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
 
     return 0
 }
@@ -59,11 +62,11 @@ function parse_options()
                         # 2+ : skip also benchmark results that have already been done
     OPTIND=1
     while getopts "h?t:wfcs:r:" opt; do
-        case "$opt" in
+        case "${opt}" in
             h|\?)
                 re_usage; exit 0; ;;
             t)
-                [[ "${OPTARG}" =~ ^[0-9]+$ ]] && TIMEOUT=$((OPTARG))          || { re_usage; exit 1; }; ;;
+                [[ "${OPTARG}" =~ ^[0-9]+$ ]] && TIMEOUT=$((OPTARG))          || { re_usage; return 1; }; ;;
             w)
                 VERBOSE_WARNINGS=1; ;;
             f)
@@ -71,14 +74,14 @@ function parse_options()
             c)
                 VERBOSE_COMMANDS=1; ;;
             s)
-                [[ "${OPTARG}" =~ ^[0-9]+$ ]] && SKIP_EXISTING=$((OPTARG))    || { re_usage; exit 1; }; ;;
+                [[ "${OPTARG}" =~ ^[0-9]+$ ]] && SKIP_EXISTING=$((OPTARG))    || { re_usage; return 1; }; ;;
             r)
-                is_directory "${OPTARG}" "${FUNCNAME[@]}" "${LINENO}" || exit 1;
-                wcet_delete_files "${OPTARG}" || exit 1;
+                is_directory "${OPTARG}" "${FUNCNAME[@]}" "${LINENO}" || return 1;
+                wcet_delete_files "${OPTARG}" || return 1;
                 exit 0;
             ;;
             *)
-                re_usage; exit 1; ;;
+                re_usage; return 1; ;;
         esac
     done
 
@@ -86,6 +89,8 @@ function parse_options()
     [ "$1" = "--" ] && shift
 
     (( 3 <= ${#} ))            || { re_usage ; return 1; };
+
+    return 0;
 }
 
 # re_usage:
@@ -152,4 +157,8 @@ REPORTING BUGS
 ###
 ###
 
-main "${@}"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "${@}"
+else
+    :
+fi

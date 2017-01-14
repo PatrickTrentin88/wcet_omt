@@ -32,23 +32,23 @@ def_colors
 function error()
 {
     echo -e -n "${RED}"
-    echo -e -n "[error]   $(basename "${0}"): " 1>&2
-    [ -n "${1}" ] && echo -e -n "${1}: " 1>&2
-    [ -n "${2}" ] && echo -e -n "row ${2}: " 1>&2
-    [ -n "${3}" ] && echo -e -n "\n[error]       ${3}. " 1>&2
-    [ -n "${4}" ] && echo -e -n "(exit code: ${4})" 1>&2
+    echo -e -n "[error]   $(basename "${1}"): " 1>&2
+    [ -n "${2}" ] && echo -e -n "${2}: " 1>&2
+    [ -n "${3}" ] && echo -e -n "row ${3}: " 1>&2
+    [ -n "${4}" ] && echo -e -n "\n[error]       ${4}. " 1>&2
+    [ -n "${5}" ] && echo -e -n "(exit code: ${5})" 1>&2
     echo -e    "${NORMAL}"
-    [ -n "${4}" ] && return "${4}" || return 1
+    [ -n "${5}" ] && return "${5}" || return 1
 }
 
 function warning()
 {
     (( 0 == VERBOSE_WARNINGS )) && return 1
     echo -e -n "${YELLOW}"
-    echo -e -n "[warning] $(basename "${0}"): " 1>&2
-    [ -n "${1}" ] && echo -e -n "${1}: " 1>&2
-    [ -n "${2}" ] && echo -e -n "row ${2}: " 1>&2
-    [ -n "${3}" ] && echo -e -n "\n[warning]     ${3}." 1>&2
+    echo -e -n "[warning] $(basename "${1}"): " 1>&2
+    [ -n "${2}" ] && echo -e -n "${2}: " 1>&2
+    [ -n "${3}" ] && echo -e -n "row ${3}: " 1>&2
+    [ -n "${4}" ] && echo -e -n "\n[warning]     ${4}." 1>&2
     echo -e    "${NORMAL}"
     return 0
 }
@@ -73,16 +73,31 @@ function log()
 
 function is_readable_file()
 {
-    (( ${#} < 1 ))  && { error "${2}" "${3}" "missing parameter"; return "${?}"; };
-    [ ! -f "${1}" ] && { error "${2}" "${3}" "<${1}> does not exist or is not a regular file"; return "${?}"; };
-    [ ! -r "${1}" ] && { error "${2}" "${3}" "<${1}> cannot be read"; return "${?}"; };
+    (( ${#} < 1 ))  && { error "${2}" "${3}" "${4}" "missing parameter"; return "${?}"; };
+    [ ! -f "${1}" ] && { error "${2}" "${3}" "${4}" "<${1}> does not exist or is not a regular file"; return "${?}"; };
+    [ ! -r "${1}" ] && { error "${2}" "${3}" "${4}" "<${1}> cannot be read"; return "${?}"; };
     return 0;
 }
 
 function is_directory()
 {
-    (( ${#} < 1 ))  && { error "${2}" "${3}" "missing parameter"; return "${?}"; };
-    [ ! -d "${1}" ] && { error "${2}" "${3}" "<${1}> does not exist or is not a directory"; return "${?}"; };
-    [ ! -x "${1}" ] && { error "${2}" "${3}" "<${1}> cannot be accessed"; return "${?}"; };
+    (( ${#} < 1 ))  && { error "${2}" "${3}" "${4}" "missing parameter"; return "${?}"; };
+    [ ! -d "${1}" ] && { error "${2}" "${3}" "${4}" "<${1}> does not exist or is not a directory"; return "${?}"; };
+    [ ! -x "${1}" ] && { error "${2}" "${3}" "${4}" "<${1}> cannot be accessed"; return "${?}"; };
     return 0;
 }
+
+###
+###
+###
+
+function pushd ()
+{
+    command pushd "${@}" &>/dev/null;
+}
+
+function popd  ()
+{
+    command popd &>/dev/null;
+}
+

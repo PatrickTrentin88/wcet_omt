@@ -5,6 +5,7 @@
 ###
 
 LOC_WCET_HANDLERS="$(realpath "$(dirname "${BASH_SOURCE[0]}" )" )"
+NAME_WCET_HANDLERS="$(basename "${BASH_SOURCE[0]}" )"
 
 TIMEOUT=$((60))
 
@@ -41,13 +42,13 @@ function wcet_generic_handler()
     wcet_generic_handler=
 
     wcet_gen_omt "${1}" "${2}" 0 "${3}" 0 0 || \
-        { error "${FUNCNAME[1]}" "$((LINENO - 1))" "formula generation error" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[1]}" "$((LINENO - 1))" "formula generation error" "${?}"; return "${?}"; };
     wcet_update_timeout "${wcet_gen_omt}" "${TIMEOUT}" || \
-        { error "${FUNCNAME[1]}" "$((LINENO - 1))" "formula timeout update error" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[1]}" "$((LINENO - 1))" "formula timeout update error" "${?}"; return "${?}"; };
     wcet_run_omt_solver "${4}" "${wcet_gen_omt}" "${5}.log" ${@:6} || \
-        { error "${FUNCNAME[1]}" "$((LINENO - 1))" "omt solver error at <${wcet_gen_omt}>" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[1]}" "$((LINENO - 1))" "omt solver error at <${wcet_gen_omt}>" "${?}"; return "${?}"; };
     wcet_parse_output "${wcet_gen_omt}" "${wcet_run_omt_solver}" || \
-        { error "${FUNCNAME[1]}" "$((LINENO - 1))" "parsing error" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[1]}" "$((LINENO - 1))" "parsing error" "${?}"; return "${?}"; };
 
     wcet_generic_handler="${wcet_parse_output}"
     return 0;
@@ -298,7 +299,7 @@ function test_handlers () {
     source "${DIR_BASE}/bin/wcet_lib/wcet_lib.sh"
 
     source "${DIR_BASE}/.wcet_omt.bashrc" || \
-        { error "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
+        { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
 
 	VERBOSE_WORKFLOW=1
 
