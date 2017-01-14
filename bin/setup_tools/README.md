@@ -22,6 +22,13 @@ the source code:
 - make
 - g++
 - libgmp3-dev
+- libmpfr-dev
+- curl
+- cmake
+- flex
+- bison
+- libboost-all-dev
+- libncurses5-dev
 
 Each tool can be separately installed in case of difficulties.
 However, it is reccomended to always use `setup_env.sh` as

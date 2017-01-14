@@ -7,7 +7,7 @@ the project maintainer <https://github.com/PatrickTrentin88/wcet_omt/>.
 ## INSTALLATION
 
 The project comes with an *installation script* which **attempts** to download and configure the 
-required dependencies. In case of **failure**, please refer to `wcet_omt/setup_tools/REAME.txt` 
+required dependencies. In case of **failure**, please refer to `wcet_omt/setup_tools/REAME.md` 
 for **manual installation**.
 
 Type
@@ -15,6 +15,20 @@ Type
     ~$ make -f Makefile.master install
 
 in the root directory and *follow the instructions*.
+
+Please note that the following packages and tools, or their equivalent for your own distribution,
+should be installed on your system in order to successfully install the required resources:
+
+- make
+- g++
+- libgmp3-dev
+- libmpfr-dev
+- curl
+- cmake
+- flex
+- bison
+- libboost-all-dev
+- libncurses5-dev
 
 ## TESTING INSTALLATION
 
