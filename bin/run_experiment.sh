@@ -11,12 +11,12 @@ NAME_RUN_EXPERIMENT="$(basename "${BASH_SOURCE[0]}" )"
 ### run experiment
 ###
 
-function main ()
+function re_main ()
 {
-    load_libraries             || \
+    re_load_libraries || \
         { echo "error: failed to load libraries" 1>&2 ; return "${?}"; };
 
-    parse_options "${@}" && shift $((OPTIND - 1)) || return "${?}";
+    re_parse_options "${@}" && shift $((OPTIND - 1)) || return "${?}";
 
     env_test || \
         { error "${NAME_RUN_EXPERIMENT}" "${FUNCNAME[0]}" "$((LINENO - 1))" "please setup the environment first" "${?}"; return "${?}"; };
@@ -30,11 +30,11 @@ function main ()
 ### help functions
 ###
 
-# load_libraries:
+# re_load_libraries:
 #   loads bash libraries into environment
 #
 # shellcheck disable=SC1090
-function load_libraries()
+function re_load_libraries()
 {
     DIR_BASE="$(realpath "${LOC_RUN_EXPERIMENT}"/../)"
 
@@ -48,11 +48,11 @@ function load_libraries()
     return 0
 }
 
-# parse_options:
+# re_parse_options:
 #   options parsers for this script
 #
 # shellcheck disable=SC2015,SC2034
-function parse_options()
+function re_parse_options()
 {
     TIMEOUT=0           # 0: disabled, else: seconds to timeout
     VERBOSE_WARNINGS=0  # print warnings [errors are always printed]
@@ -158,7 +158,7 @@ REPORTING BUGS
 ###
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "${@}"
+    re_main "${@}"
 else
     :
 fi
