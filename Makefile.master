@@ -26,7 +26,7 @@ WCET_RUN_FLAGS	:= -f -s 1						# default:
 
 WCET_RUN_FLAGS  += -t $(WCET_TIMEOUT)
 
-SETUP_FLAGS     := -f -c -w						# default:
+WCET_SETUP_FLAGS     := -f -c -w				# default:
 												# -f   : print general information
 												# -c   : print calls to external commands
 												# -w   : print warnings
@@ -58,7 +58,7 @@ endef
 default : ;
 
 install :
-	@ $(WCET_SETUP) $(SETUP_FLAGS)
+	@ $(WCET_SETUP) $(WCET_SETUP_FLAGS)
 
 default_all : \
 	z3_0 \
