@@ -53,12 +53,15 @@ define run-experiment
 endef
 
 # rules
-.PHONY : default install clean default_all
+.PHONY : default install clean default_all version
 
 default : ;
 
 install :
 	@ $(WCET_SETUP) $(WCET_SETUP_FLAGS)
+
+version :
+	@ $(WCET_RUN) -f -v
 
 default_all : \
 	z3_0 \

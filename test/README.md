@@ -1,7 +1,17 @@
 ## TESTING INSTALLATION
 
-In order to check that the *probject* is successfully installed, please
-run the following test:
+In order to check that the *project* is successfully installed, the first
+step is to check that the environment is properly configured:
+
+    ~$ pushd bench
+    ~$ make version ; popd
+
+If each and every listed tool is found within the project's resources,
+then it means that the installation and configuration of the environment
+was successful
+
+In order to test the capability of performing an experimental session,
+the following commands should be used:
 
     ~$ pushd bench
     ~$ make all ; popd
