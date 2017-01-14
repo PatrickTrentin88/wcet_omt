@@ -157,7 +157,6 @@ function wcet_gen_omt()
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "wcet_generator.py ${options[*]} \"${1}\" > \"${dst_file}\""
-        # ignore shellcheck: expansions intended
         wcet_generator.py "${options[@]}" "${1}" > "${dst_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}"; };
     fi
