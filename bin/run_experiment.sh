@@ -32,7 +32,7 @@ function re_main ()
 
 # re_load_libraries:
 #   loads bash libraries into environment
-#		${1}		-- full path to base directory
+#       ${1}        -- full path to base directory
 #
 # shellcheck disable=SC1090
 function re_load_libraries()
