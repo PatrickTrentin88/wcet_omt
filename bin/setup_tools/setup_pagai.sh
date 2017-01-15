@@ -125,7 +125,9 @@ function pagai_parse_options()
 function pagai_is_installed ()
 {
     BIN_PAGAI=$(find -L "${1}/pagai" -name pagai -executable -type f 2>/dev/null)
-    [ -n "${BIN_PAGAI}" ] || return 1;
+    [ -n "${BIN_PAGAI}" ]  || return 1;
+    BIN_SMTOPT=$(find -L "${1}/pagai" -name smtopt -executable -type f 2>/dev/null)
+    [ -n "${BIN_SMTOPT}" ] || return 1;
     return 0;
 }
 
@@ -235,6 +237,20 @@ function pagai_install ()
         log_cmd "./autoinstall.sh &> \"${2}\""
         ./autoinstall.sh &> "${2}" || \
             { error "${NAME_SETUP_PAGAI}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai could not be installed, see <${2}>" "${?}";  return "${?}"; };
+    ) && ret="${?}"
+
+    popd
+
+    (( ret )) && return "${ret}"
+
+    pushd "${1}/pagai/WCET/smtopt"
+
+    (
+        log "building smtopt ..."
+
+        log_cmd "make all &> \"${2}\""
+        make all &> "${2}" || \
+            { error "${NAME_SETUP_PAGAI}" "${FUNCNAME[0]}" "$((LINENO - 1))" "smtopt could not be compiled, see <${2}>" "${?}";  return "${?}"; };
     ) && ret="${?}"
 
     popd
