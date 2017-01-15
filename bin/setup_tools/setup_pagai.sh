@@ -311,6 +311,18 @@ function llvmas_test()
     return 0
 }
 
+# smtopt_test:
+#   tests access to smtopt
+#
+function smtopt_test()
+{
+    which smtopt &>/dev/null || \
+        { error "${NAME_SETUP_PAGAI}" "${FUNCNAME[0]}" "$((LINENO - 1))" "smtopt not found, did you forget to set \${PATH}?" "${?}"; return "${?}"; };
+
+    log "smtopt: $(which smtopt) ($(smtopt -h | head -n 1 | cut -d\  -f 4 | sed 's/)//'))"
+    return 0
+}
+
 ###
 ###
 ###

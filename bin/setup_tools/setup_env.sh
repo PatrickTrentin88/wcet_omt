@@ -203,6 +203,7 @@ function env_get_resources ()
     args["llvm"]="$(realpath "${1}/pagai/external/llvm/bin")"       || return 1
     args["pagai_z3_lib"]="$(realpath "${1}/pagai/external/z3/lib")" || return 1
     args["pagai_z3"]="$(realpath "${1}/pagai/external/z3/bin")"     || return 1
+    args["smtopt"]="$(realpath "${1}/pagai/WCET/smtopt")"           || return 1
 
     args["z3"]="$(realpath "${1}/z3/build")" || return 1
 
@@ -252,7 +253,8 @@ pathprepend()
 '
     echo "export PATH_PAGAI=\"${args["pagai"]}\""
     echo "export PATH_LLVM=\"${args["llvm"]}\""
-    echo 'pathprepend "${PATH_PAGAI}" "${PATH_LLVM}"'
+    echo "export PATH_SMTOPT=\"${args["smtopt"]}\""
+    echo 'pathprepend "${PATH_PAGAI}" "${PATH_LLVM}" "${PATH_SMTOPT}"'
     echo ""
     echo "export PATH_Z3=\"${args["z3"]}\""
     echo "export PATH_OPTIMATHSAT=\"${args["optimathsat"]}\""
@@ -293,6 +295,9 @@ function env_test ()
 
     z3_test || \
         { warning "${NAME_SETUP_ENV}" "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 test failed" "${?}"; errors=$((errors + 1)); };
+
+    smtopt_test || \
+        { warning "${NAME_SETUP_ENV}" "${FUNCNAME[0]}" "$((LINENO - 1))" "smtopt not found" "${?}"; errors=$((errors + 1)); };
 
     optimathsat_test || \
         { warning "${NAME_SETUP_ENV}" "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat test failed" "${?}"; errors=$((errors + 1)); };
