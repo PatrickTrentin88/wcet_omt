@@ -110,18 +110,18 @@ index edd7039..d16a771 100644
 --- a/WCET/smtopt/Makefile
 +++ b/WCET/smtopt/Makefile
 @@ -1,7 +1,11 @@
- Z3_PATH        = ../../external/z3
--CC             = g++
-+CC             = g++ -std=c++11
+ Z3_PATH	= ../../external/z3
+-CC		= g++
++CC		= g++ -std=c++11
  
  
  all:
-        $(CC) -Wall -o smtopt -I $(Z3_PATH)/include -L$(Z3_PATH)/lib -O2  smtopt.cc -lz3
-        $(CC) -Wall -o smtopt2 -I $(Z3_PATH)/include -L$(Z3_PATH)/lib -O2  smtoptv2.cc -lz3
+ 	$(CC) -Wall -o smtopt -I $(Z3_PATH)/include -L$(Z3_PATH)/lib -O2  smtopt.cc -lz3
+ 	$(CC) -Wall -o smtopt2 -I $(Z3_PATH)/include -L$(Z3_PATH)/lib -O2  smtoptv2.cc -lz3
 +
 +new:
-+       $(CC) -Wall -o smtopt -I ../../../z3/build/api -L../../../z3/build/ -O0  smtopt.cc -lz3
-+       $(CC) -Wall -o smtopt2 -I ../../../z3/build/api -L../../../z3/build/ -O0  smtoptv2.cc -lz3
++	$(CC) -Wall -o smtopt -I ../../../z3/build/api -L../../../z3/build/ -O0  smtopt.cc -lz3
++	$(CC) -Wall -o smtopt2 -I ../../../z3/build/api -L../../../z3/build/ -O0  smtoptv2.cc -lz3
 diff --git a/WCET/smtopt/smtopt.cc b/WCET/smtopt/smtopt.cc
 index 72b780c..46a8727 100644
 --- a/WCET/smtopt/smtopt.cc
