@@ -197,8 +197,8 @@ function pagai_patch ()
         git reset --hard &>"${2}" || \
             { error "${NAME_SETUP_PAGAI}" "${FUNCNAME[0]}" "$((LINENO - 1))" "git: reset --hard failed" "${?}";  return "${?}"; };
 
-        log_cmd "git apply \"${patch}\" &> \"${2}\""
-        git apply "${patch}" &> "${2}" || \
+        log_cmd "git apply --whitespace=fix \"${patch}\" &> \"${2}\""
+        git apply --whitespace=fix "${patch}" &> "${2}" || \
             { error "${NAME_SETUP_PAGAI}" "${FUNCNAME[0]}" "$((LINENO - 1))" "git: patch ${patch} failed" "${?}";  return "${?}"; };
 
     ) && ret="${?}"
