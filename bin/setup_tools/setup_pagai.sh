@@ -248,8 +248,8 @@ function pagai_install ()
     (
         log "building smtopt ..."
 
-        log_cmd "make new &> \"${2}\""  # NOTE: z3 should be installed first!
-        make new &> "${2}" || \
+        log_cmd "make new &>> \"${2}\""  # NOTE: z3 should be installed first!
+        make new &>> "${2}" || \
             { error "${NAME_SETUP_PAGAI}" "${FUNCNAME[0]}" "$((LINENO - 1))" "smtopt could not be compiled, see <${2}>" "${?}";  return "${?}"; };
     ) && ret="${?}"
 
