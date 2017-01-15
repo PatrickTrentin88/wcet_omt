@@ -1,3 +1,24 @@
+diff --git a/WCET/LCTES14/Makefile b/WCET/LCTES14/Makefile
+index 8ff28e7..1a93115 100644
+--- a/WCET/LCTES14/Makefile
++++ b/WCET/LCTES14/Makefile
+@@ -17,13 +17,13 @@ all: $(EDGERES) $(EDGENOCUTSRES) $(RES) $(NOCUTSRES) $(EDGERECURSIVECUTSRES)
+ 	$(SCRIPTDIR)/go.sh -c $< -b -n -T $(ULIMIT) -M $*.blocks.match 
+ 
+ %.edges.res: %.bc %.edges.match
+-	$(SCRIPTDIR)/go.sh -c $< -b -l -n -T $(ULIMIT) -M $*.edges.match -S $*.edges.syntactic
++	$(SCRIPTDIR)/go.sh -c $< -b -l -n -T $(ULIMIT) -M $*.edges.match # -S $*.edges.syntactic
+ 
+ %.edges.recursivecuts.res: %.bc %.edges.match
+-	$(SCRIPTDIR)/go.sh -c $< -b -l -n -R -T $(ULIMIT) -M $*.edges.match -S $*.edges.syntactic
++	$(SCRIPTDIR)/go.sh -c $< -b -l -n -R -T $(ULIMIT) -M $*.edges.match # -S $*.edges.syntactic
+ 
+ %.edges.nocuts.res: %.bc %.edges.match
+-	$(SCRIPTDIR)/go.sh -c $< -b -l -n -T $(ULIMIT) -s -M $*.edges.match -S $*.edges.syntactic
++	$(SCRIPTDIR)/go.sh -c $< -b -l -n -T $(ULIMIT) -s -M $*.edges.match # -S $*.edges.syntactic
+ 
+ %.res: %.bc
+ 	#$(SCRIPTDIR)/go.sh -c $< -b -l -n > $@ 2> $@
 diff --git a/WCET/go.sh b/WCET/go.sh
 index 9f025d3..f748712 100755
 --- a/WCET/go.sh
