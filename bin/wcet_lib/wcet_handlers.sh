@@ -13,12 +13,15 @@ TIMEOUT=$((60))
 ### global options for omt solvers
 ###
 
+z3_globals=""
+z3_globals+=""
+
+smtopt_globals=""
+smtopt_globals+=""
+
 optimathsat_globals=""
 optimathsat_globals+=" -optimization.dpll.print_partial_sol=True" # True: prints each search interval improvement
 optimathsat_globals+=" -optimization.dpll.search_strategy=0"      # 0: linear, 1: binary, 2: adaptive
-
-z3_globals=""
-z3_globals+=""
 
 ###
 ### "inline" help function
@@ -45,7 +48,7 @@ function wcet_generic_handler()
         { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[1]}" "$((LINENO - 1))" "formula generation error" "${?}"; return "${?}"; };
     wcet_update_timeout "${wcet_gen_omt}" "${TIMEOUT}" || \
         { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[1]}" "$((LINENO - 1))" "formula timeout update error" "${?}"; return "${?}"; };
-    wcet_run_omt_solver "${4}" "${wcet_gen_omt}" "${5}.log" ${@:6} || \
+    wcet_run_omt_solver "${4}" "${TIMEOUT}" "${wcet_gen_omt}" "${5}.log" ${@:6} || \
         { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[1]}" "$((LINENO - 1))" "omt solver error at <${wcet_gen_omt}>" "${?}"; return "${?}"; };
     wcet_parse_output "${wcet_gen_omt}" "${wcet_run_omt_solver}" || \
         { error "${NAME_WCET_HANDLERS}" "${FUNCNAME[1]}" "$((LINENO - 1))" "parsing error" "${?}"; return "${?}"; };
@@ -92,6 +95,36 @@ function wcet_z3_0_cuts_handler
     wcet_generic_handler "${1}" 0 0 "z3" "${2}" "${z3_globals}" "${z3_locals}" || return "${?}"
 
     wcet_z3_0_cuts_handler="${wcet_generic_handler}"
+    return 0;
+}
+
+
+###
+### SMTOPT + DEFAULT ENCODING
+###
+
+
+# shellcheck disable=SC2034
+function wcet_smtopt_0_handler
+{
+    wcet_smtopt_0_handler= ;
+
+    smtopt_locals=""
+    wcet_generic_handler "${1}" 0 1 "smtopt" "${2}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
+
+    wcet_smtopt_0_handler="${wcet_generic_handler}"
+    return 0;
+}
+
+# shellcheck disable=SC2034
+function wcet_smtopt_0_cuts_handler
+{
+    wcet_smtopt_0_cuts_handler= ;
+
+    smtopt_locals=""
+    wcet_generic_handler "${1}" 0 0 "smtopt" "${2}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
+
+    wcet_smtopt_0_cuts_handler="${wcet_generic_handler}"
     return 0;
 }
 

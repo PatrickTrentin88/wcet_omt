@@ -19,6 +19,7 @@ Some of the resources may require being compiled. The following
 is a non-exhaustive list of required packages for building
 the source code:
 
+- coreutils
 - make
 - g++
 - libgmp3-dev

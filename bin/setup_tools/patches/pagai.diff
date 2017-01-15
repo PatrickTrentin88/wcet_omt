@@ -105,11 +105,40 @@ index 9f025d3..f748712 100755
  			PERCENTAGE_GAINED=` echo "scale=1; (($MAX_BOUND - $SMTRES)*100/$MAX_BOUND)" | bc`
  			;;
  		*)
+diff --git a/WCET/smtopt/Makefile b/WCET/smtopt/Makefile
+index edd7039..d16a771 100644
+--- a/WCET/smtopt/Makefile
++++ b/WCET/smtopt/Makefile
+@@ -1,7 +1,11 @@
+ Z3_PATH        = ../../external/z3
+-CC             = g++
++CC             = g++ -std=c++11
+ 
+ 
+ all:
+        $(CC) -Wall -o smtopt -I $(Z3_PATH)/include -L$(Z3_PATH)/lib -O2  smtopt.cc -lz3
+        $(CC) -Wall -o smtopt2 -I $(Z3_PATH)/include -L$(Z3_PATH)/lib -O2  smtoptv2.cc -lz3
++
++new:
++       $(CC) -Wall -o smtopt -I ../../../z3/build/api -L../../../z3/build/ -O0  smtopt.cc -lz3
++       $(CC) -Wall -o smtopt2 -I ../../../z3/build/api -L../../../z3/build/ -O0  smtoptv2.cc -lz3
 diff --git a/WCET/smtopt/smtopt.cc b/WCET/smtopt/smtopt.cc
-index 72b780c..f06a2ea 100644
+index 72b780c..46a8727 100644
 --- a/WCET/smtopt/smtopt.cc
 +++ b/WCET/smtopt/smtopt.cc
-@@ -25,12 +25,12 @@ bool verbose = false;
+@@ -18,6 +18,11 @@
+ #include "z3.h"
+ #include "z3_api.h"
+ 
++#include <memory>
++struct noop {
++	void operator()(...) const {}
++};
++
+ using namespace std;
+ 
+ // input options
+@@ -25,12 +30,12 @@ bool verbose = false;
  bool fullmodel = false;
  int max_bound = 0;
  
@@ -124,7 +153,7 @@ index 72b780c..f06a2ea 100644
  
  
  	//Z3_parse_smtlib_string(ctx, smtFormula.c_str(), 0, 0, 0, 0, 0, 0);
-@@ -55,28 +55,38 @@ Z3_context createSMT(const string &smtFormula){
+@@ -55,28 +60,38 @@ Z3_context createSMT(const string &smtFormula){
  	Z3_parse_smtlib_string(ctx, smtlibFormula.c_str(), 0, 0, 0, 0, 0, 0);
  	Z3_ast f = Z3_get_smtlib_formula(ctx, 0);
  
@@ -171,7 +200,28 @@ index 72b780c..f06a2ea 100644
  	}
  
  	if (result == Z3_L_TRUE)
-@@ -157,35 +167,36 @@ bool recoverVarInFormula(const Z3_context &ctx, const char *varName, Z3_ast &var
+@@ -103,11 +118,18 @@ bool readProblem(int argc, char *argv[], string &smtFormula, char * &varMaximize
+ 	}
+ 
+ 	try{
+-		ifstream smtfile (argv[1]);
++
++		std::shared_ptr<istream> smtfile;
++		if (strcmp(argv[1], "-") == 0) {
++			smtfile.reset(&cin, noop());
++		} else {
++			smtfile.reset(new ifstream(argv[1]));
++		}
++		
+ 		varMaximize = argv[2];
+ 
+ 		smtFormula.clear();
+-		while (getline(smtfile, line))
++		while (getline(*smtfile, line))
+ 			smtFormula += line + '\n';
+ 		
+ 		for (int i = 3; i < argc; ++i){
+@@ -157,35 +179,36 @@ bool recoverVarInFormula(const Z3_context &ctx, const char *varName, Z3_ast &var
  }
  
  // Initially unbounded binary search
@@ -220,7 +270,7 @@ index 72b780c..f06a2ea 100644
  			Z3_get_numeral_int64(ctx, t, &min);
  			if (!upperBoundFound) {
  				if (max_bound == 0) {
-@@ -200,7 +211,7 @@ long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_d
+@@ -200,7 +223,7 @@ long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_d
  			}
  			if (verbose) printf("SAT (value found = %lld). New interval = [%lld, %lld].\n", min, min, max);
  		}
@@ -229,7 +279,7 @@ index 72b780c..f06a2ea 100644
  	return min;
  }
  
-@@ -208,6 +219,7 @@ int main(int argc, char *argv[]) {
+@@ -208,6 +231,7 @@ int main(int argc, char *argv[]) {
  	Z3_context ctx;
  	Z3_ast varToMax;
  	Z3_func_decl varToMaxDecl;
@@ -237,7 +287,7 @@ index 72b780c..f06a2ea 100644
  
  	string smtFormula;
  	char *varMaximize = NULL;
-@@ -215,17 +227,18 @@ int main(int argc, char *argv[]) {
+@@ -215,17 +239,18 @@ int main(int argc, char *argv[]) {
  
  	if (readProblem(argc, argv, smtFormula, varMaximize) == false)
  		exit(0);
@@ -260,10 +310,22 @@ index 72b780c..f06a2ea 100644
  	Z3_del_context(ctx);
  }
 diff --git a/WCET/smtopt/smtoptv2.cc b/WCET/smtopt/smtoptv2.cc
-index 0f78ce5..fa58cd5 100644
+index 0f78ce5..18dffb0 100644
 --- a/WCET/smtopt/smtoptv2.cc
 +++ b/WCET/smtopt/smtoptv2.cc
-@@ -25,12 +25,12 @@ bool verbose = false;
+@@ -18,6 +18,11 @@
+ #include "z3.h"
+ #include "z3_api.h"
+ 
++#include <memory>
++struct noop {
++	void operator()(...) const {}
++};
++
+ using namespace std;
+ 
+ // input options
+@@ -25,12 +30,12 @@ bool verbose = false;
  bool fullmodel = false;
  int max_bound = 0;
  
@@ -278,7 +340,7 @@ index 0f78ce5..fa58cd5 100644
  
  
  	//Z3_parse_smtlib_string(ctx, smtFormula.c_str(), 0, 0, 0, 0, 0, 0);
-@@ -55,28 +55,37 @@ Z3_context createSMT(const string &smtFormula){
+@@ -55,28 +60,37 @@ Z3_context createSMT(const string &smtFormula){
  	Z3_parse_smtlib_string(ctx, smtlibFormula.c_str(), 0, 0, 0, 0, 0, 0);
  	Z3_ast f = Z3_get_smtlib_formula(ctx, 0);
  
@@ -324,7 +386,27 @@ index 0f78ce5..fa58cd5 100644
  	}
  
  	if (result == Z3_L_TRUE)
-@@ -158,35 +167,37 @@ bool recoverVarInFormula(const Z3_context &ctx, const char *varName, Z3_ast &var
+@@ -103,12 +117,17 @@ bool readProblem(int argc, char *argv[], string &smtFormula, char * &varMaximize
+ 	}
+ 
+ 	try{
+-		ifstream smtfile (argv[1]);
++		std::shared_ptr<istream> smtfile;
++		if (strcmp(argv[1], "-") == 0) {
++			smtfile.reset(&cin, noop());
++		} else {
++			smtfile.reset(new ifstream(argv[1]));
++		}
+ 		varMaximize = argv[2];
+ 		cutsfilename = argv[3];
+ 
+ 		smtFormula.clear();
+-		while (getline(smtfile, line))
++		while (getline(*smtfile, line))
+ 			smtFormula += line + '\n';
+ 		
+ 		for (int i = 4; i < argc; ++i){
+@@ -158,35 +177,37 @@ bool recoverVarInFormula(const Z3_context &ctx, const char *varName, Z3_ast &var
  }
  
  // Initially unbounded binary search
@@ -373,7 +455,7 @@ index 0f78ce5..fa58cd5 100644
  			Z3_get_numeral_int64(ctx, t, &min);
  			if (!upperBoundFound) {
  				if (maxbound == 0) {
-@@ -197,16 +208,17 @@ long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_d
+@@ -197,16 +218,17 @@ long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_d
  			}
  			if (max > INT_MAX){
  				printf("Warning: The variable looks unbounded. (aborted)\n");
@@ -393,7 +475,7 @@ index 0f78ce5..fa58cd5 100644
  	unsigned num_decl = Z3_get_smtlib_num_decls(ctx);
  	unsigned nb_cuts = 0;
  	unsigned treated = 0;
-@@ -244,11 +256,11 @@ bool update_cuts(const Z3_context &ctx, std::string cutsfilename){
+@@ -244,11 +266,11 @@ bool update_cuts(const Z3_context &ctx, std::string cutsfilename){
  	        		decl = Z3_get_smtlib_decl(ctx, i);
  	        		var = Z3_mk_const(ctx, symb, Z3_mk_int_sort(ctx));
  	        		std::cout << "cut found " << name << "\n";
@@ -407,7 +489,7 @@ index 0f78ce5..fa58cd5 100644
  	        	}
  	        }
          }
-@@ -262,6 +274,7 @@ int main(int argc, char *argv[]) {
+@@ -262,6 +284,7 @@ int main(int argc, char *argv[]) {
  	Z3_context ctx;
  	Z3_ast varToMax;
  	Z3_func_decl varToMaxDecl;
@@ -415,7 +497,7 @@ index 0f78ce5..fa58cd5 100644
  
  	string smtFormula;
  	string cutsfilename;
-@@ -270,18 +283,21 @@ int main(int argc, char *argv[]) {
+@@ -270,18 +293,21 @@ int main(int argc, char *argv[]) {
  
  	if (readProblem(argc, argv, smtFormula, varMaximize, cutsfilename) == false)
  		exit(0);

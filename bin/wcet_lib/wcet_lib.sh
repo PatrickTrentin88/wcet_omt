@@ -159,6 +159,11 @@ function wcet_gen_omt()
         log_cmd "wcet_generator.py ${options[*]} \"${1}\" > \"${dst_file}\""
         wcet_generator.py "${options[@]}" "${1}" > "${dst_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}"; };
+
+        errmsg="$(grep ";; ERROR" "${dst_file}" | cut -d\  -f 4-)"
+        if [ -n "${errmsg}" ]; then
+            error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 5))" "${errmsg:: -1}"; return "${?}";
+        fi
     fi
 
     wcet_gen_omt="${dst_file}"
@@ -200,67 +205,134 @@ function wcet_update_timeout ()
 
 # wcet_run_optimathsat:
 #   runs optimathsat over an OMT formula
-#       ${1}        -- full path to OMT formula (ext: `.smt2`)
-#       ${2}        -- full path to output file (ext: any)
+#       ${1}        -- seconds to timeout, 0: disabled
+#       ${2}        -- full path to OMT formula (ext: `.smt2`)
+#       ${3}        -- full path to output file (ext: any)
 #       [...]       -- optimathsat options
 #   return ${wcet_run_optimathsat}
-#                   -- full path to output file (= ${2})
+#                   -- full path to output file (= ${3})
 #
 # shellcheck disable=SC2034
 function wcet_run_optimathsat ()
 {
     wcet_run_optimathsat=
+    local ret=
 
-    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
-    is_directory "$(dirname "${2}")" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${2}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_directory "$(dirname "${3}")" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
-    if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${2}" -a -r "${2}" \) ; then
-        log_cmd "optimathsat ${*:3} < \"${1}\" > \"${2}\" 2>&1"
+    if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${3}" -a -r "${3}" \) ; then
+        log_cmd "optimathsat ${*:4} < \"${2}\" &> \"${3}\""
 
-        /usr/bin/time -f "# real-time: %e" optimathsat "${@:3}" < "${1}" > "${2}" 2>&1 ||
-            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat error, see <${2}>" "${?}"; return "${?}"; };
+        timeout "${1}" /usr/bin/time -f "# real-time: %e" optimathsat "${@:4}" < "${2}" &> "${3}"
+        ret="${?}"
+
+        if (( ret != 0 )); then
+            if (( ret == 124 )); then # timeout
+                echo -e "\ntimeout\n# real-time: ${1}.01" >> "${3}"
+            else
+                { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 7))" "optimathsat error, see <${3}>" "${?}"; return "${?}"; };
+            fi
+        fi
     fi
 
-    wcet_run_optimathsat="${2}"
+    wcet_run_optimathsat="${3}"
     return 0;
 }
 
 # wcet_run_z3:
 #   runs z3 over an OMT formula
-#       ${1}        -- full path to OMT formula (ext: `.smt2`)
-#       ${2}        -- full path to output file (ext: any)
+#       ${1}        -- seconds to timeout, 0: disabled
+#       ${2}        -- full path to OMT formula (ext: `.smt2`)
+#       ${3}        -- full path to output file (ext: any)
 #       [...]       -- z3 options
 #   return ${wcet_run_z3}
-#                   -- full path to output file (= ${2})
+#                   -- full path to output file (= ${3})
 #
 # shellcheck disable=SC2034
 function wcet_run_z3 ()
 {
     wcet_run_z3=
+    local ret=
 
-    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
-    is_directory "$(dirname "${2}")" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_readable_file "${2}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_directory "$(dirname "${3}")" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
 
-    if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${2}" -a -r "${2}" \) ; then
-        log_cmd "z3 ${*:3} \"${1}\" > \"${2}\" 2>&1"
+    if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${3}" -a -r "${3}" \) ; then
+        log_cmd "z3 ${*:4} \"${2}\" &> \"${3}\""
 
-        sed 's/\((set-option :timeout [0-9][0-9]*\).0)/\1000.0)/;s/\((maximize .*\) \(:.* :.*)\)/\1)/' "${1}" | \
-            /usr/bin/time -f "# real-time: %e" z3 -in -smt2 "${@:3}" > "${2}" 2>&1 ||
-            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 error, see <${2}>" "${?}"; return "${?}"; };
+        sed 's/\((set-option :timeout [0-9][0-9]*\).0)/\1000.0)/;s/\((maximize .*\) \(:.* :.*)\)/\1)/' "${2}" | \
+            timeout "${1}" /usr/bin/time -f "# real-time: %e" z3 -in -smt2 "${@:4}" &> "${3}"
+        ret="${?}"
+
+        if (( ret != 0 )); then
+            if (( ret == 124 )); then # timeout
+                echo -e "\ntimeout\n# real-time: ${1}.01" >> "${3}"
+            else
+                { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 7))" "z3 error, see <${3}>" "${?}"; return "${?}"; };
+            fi
+        fi
     fi
 
-    wcet_run_z3="${2}"
+    wcet_run_z3="${3}"
+    return 0;
+}
+
+# wcet_run_smtopt:
+#   runs smtopt over an OMT formula
+#       ${1}        -- seconds to timeout, 0: disabled
+#       ${2}        -- full path to OMT formula (ext: `.smt2`)
+#       ${3}        -- full path to output file (ext: any)
+#       [...]       -- smtopt options
+#   return ${wcet_run_smtopt}
+#                   -- full path to output file (= ${3})
+#
+# shellcheck disable=SC2034
+function wcet_run_smtopt ()
+{
+    wcet_run_smtopt=
+    local ret= ; local cost_var= ; local max= ;
+
+    is_readable_file "${2}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    is_directory "$(dirname "${3}")" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+
+    if (( SKIP_EXISTING <= 1 )) || test ! \( -f "${3}" -a -r "${3}" \) ; then
+        cost_var="$(grep maximize "${2}" | cut -d\  -f 2 | sed 's/)//')"
+        [ -n "${cost_var}" ] || \
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 2))" "unable to parse cost variable"; return "${?}"; };
+
+        max="$(grep LONGEST_PATH "${2}" | cut -d\  -f 4)"
+        [ -n "${max}" ] || \
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 2))" "unable to parse longest syntactic path"; return "${?}"; };
+
+        log_cmd "smtopt - \"${cost_var}\" -v -M \"${max}\" ${*:4} \"${2}\" &> \"${3}\""
+
+        sed 's/\((set-option :timeout [0-9][0-9]*\).0)/\1000.0)/;s/(maximize .*)//' "${2}" | \
+            timeout "${1}" /usr/bin/time -f "\n# real-time: %e" smtopt - "${cost_var}" -v -M "${max}" "${@:4}" &> "${3}"
+        ret="${?}"
+
+        if (( ret != 0 )); then
+            if (( ret == 124 )); then # timeout
+                echo -e "\ntimeout\n# real-time: ${1}.01" >> "${3}"
+            else
+                { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 7))" "smtopt error, see <${3}>" "${?}"; return "${?}"; };
+            fi
+        fi
+    fi
+
+    wcet_run_smtopt="${3}"
     return 0;
 }
 
 # wcet_run_omt_solver:
 #   runs an OMT solver over an OMT formula
 #       ${1}        -- omt solver to be used (e.g. "optimathsat", "z3")
-#       ${2}        -- full path to OMT formula (ext: `.smt2`)
-#       ${3}        -- full path to output file (ext: any)
+#       ${2}        -- seconds to timeout, 0: disabled
+#       ${3}        -- full path to OMT formula (ext: `.smt2`)
+#       ${4}        -- full path to output file (ext: any)
 #       [...]       -- omt solver options
 #   return ${wcet_run_omt_solver}
-#                   -- full path to output file (= ${2})
+#                   -- full path to output file (= ${4})
 #
 # shellcheck disable=SC2034
 function wcet_run_omt_solver ()
@@ -273,6 +345,9 @@ function wcet_run_omt_solver ()
     elif [[ "${1}" =~ ^optimathsat$ ]]; then
         wcet_run_optimathsat "${@:2}" || return "${?}"
         wcet_run_omt_solver="${wcet_run_optimathsat}"
+    elif [[ "${1}" =~ ^smtopt$ ]]; then
+        wcet_run_smtopt "${@:2}" || return "${?}"
+        wcet_run_omt_solver="${wcet_run_smtopt}"
     else
         error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "unknown smt2 solver <${1}>" && exit "${?}"
     fi
@@ -360,23 +435,12 @@ function wcet_parse_output ()
     args["smt2_file"]="${1}"
     args["out_file"]="${2}"
 
-    # opt value + solver
-
-    if grep -q "# Optimum:" "${2}"; then
-        args["opt_value"]="$(grep "Optimum" "${2}"         | cut -d\  -f 3)"
-        solver="optimathsat"
-    elif grep -q "(objectives" "${2}"; then
-        args["opt_value"]="$(grep "objectives" -A 1 "${2}" | tail -n 1 | cut -d\  -f 3 | sed 's/)//')"
-        solver="z3"
-    else
-        error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "nothing to parse" && exit "${?}"
-    fi
-
     # status
 
-    is_unknown="$(grep -ci "^unknown$" "${2}")"
-    is_unsat="$(grep -ci "^unsat$" "${2}")"
-    is_sat="$(grep -ci "^sat$" "${2}")"
+    is_unknown="$(grep -Eci -m 1 "^(timeout|unknown|# Timeout reached!)$" "${2}")"
+    is_unsat="$(grep -Eci -m 1 "(^unsat$|No solution was found)" "${2}")"
+    is_sat="$(grep -Eci -m 1 "(^sat$|The maximum value of)" "${2}")"
+    (( is_unknown )) && is_sat=$((0)) # optimathsat prints sat for partially optimized problems
 
     (( ( is_unknown + is_unsat + is_sat ) == 1 )) || \
         { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "parsed multiple search statuses, see <${2}>"; exit 1; };
@@ -385,14 +449,25 @@ function wcet_parse_output ()
     (( is_unsat ))   && args["status"]="unsat"
     (( is_sat ))     && args["status"]="sat"
 
-    # timeout
+    args["timeout"]=$((is_unknown))
 
-    [[ "${solver}" =~ ^optimathsat$ ]] && has_timeout="$(grep -ci "Timeout reached" "${2}")"
-    [[ "${solver}" =~ ^z3$ ]]          && has_timeout=$((is_unknown))
-    args["timeout"]=$((has_timeout))
+    # opt value + solver
 
-    if (( (has_timeout + is_unsat) >= 1 )) ; then   # discard any partial result
+    if (( (is_unknown + is_unsat) >= 1 )) ; then
         args["opt_value"]="${args["max_path"]}"
+    else
+        if grep -q "# Optimum:" "${2}"; then
+            args["opt_value"]="$(grep "Optimum" "${2}"           | cut -d\  -f 3)"
+            solver="optimathsat"
+        elif grep -q "(objectives" "${2}"; then
+            args["opt_value"]="$(grep "objectives" -A 1 "${2}"   | tail -n 1 | cut -d\  -f 3 | sed 's/)//')"
+            solver="z3"
+        elif grep -q "maximum value of " "${2}"; then
+            args["opt_value"]="$(grep "maximum value of " "${2}" | cut -d\  -f 7)"
+            solver="smtopt"
+        else
+            error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "nothing to parse" && exit "${?}"
+        fi
     fi
 
     # error

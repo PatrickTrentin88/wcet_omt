@@ -83,6 +83,10 @@ z3_0:
 	$(run-experiment) $@
 z3_0_cuts:
 	$(run-experiment) $@
+smtopt_0:
+	$(run-experiment) $@
+smtopt_0_cuts:
+	$(run-experiment) $@
 optimathsat_0:
 	$(run-experiment) $@
 optimathsat_0_cuts:

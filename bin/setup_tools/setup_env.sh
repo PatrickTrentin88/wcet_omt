@@ -155,11 +155,12 @@ function env_install ()
 
     log "installing tools ..."
 
-    pagai_setup "${@:3}" || \
-        { warning "${NAME_SETUP_ENV}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai setup failed" "${?}"; errors=$((errors + 1)); };
-
+    # smtopt, included in pagai, requires z3 being installed first
     z3_setup "${@:3}" || \
         { warning "${NAME_SETUP_ENV}" "${FUNCNAME[0]}" "$((LINENO - 1))" "z3 setup failed" "${?}"; errors=$((errors + 1)); };
+
+    pagai_setup "${@:3}" || \
+        { warning "${NAME_SETUP_ENV}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai setup failed" "${?}"; errors=$((errors + 1)); };
 
     optimathsat_setup "${@:3}" || \
         { warning "${NAME_SETUP_ENV}" "${FUNCNAME[0]}" "$((LINENO - 1))" "optimathsat setup failed" "${?}"; errors=$((errors + 1)); };
@@ -205,7 +206,8 @@ function env_get_resources ()
     args["pagai_z3"]="$(realpath "${1}/pagai/external/z3/bin")"     || return 1
     args["smtopt"]="$(realpath "${1}/pagai/WCET/smtopt")"           || return 1
 
-    args["z3"]="$(realpath "${1}/z3/build")" || return 1
+    args["z3_lib"]="$(realpath "${1}/z3/build")" || return 1
+    args["z3"]="$(realpath "${1}/z3/build")"     || return 1
 
     [[ "${OSTYPE}" =~ msys* ]] && optimathsat="optimathst.exe" || optimathsat="optimathsat"
     args["optimathsat"]="$(realpath "$(dirname "$(find "${1}" -name "${optimathsat}" -executable -type f 2>/dev/null)" )" )" || return 1;
@@ -257,6 +259,7 @@ pathprepend()
     echo 'pathprepend "${PATH_PAGAI}" "${PATH_LLVM}" "${PATH_SMTOPT}"'
     echo ""
     echo "export PATH_Z3=\"${args["z3"]}\""
+    echo "export LIB_Z3=\"${args["z3_lib"]}\""
     echo "export PATH_OPTIMATHSAT=\"${args["optimathsat"]}\""
     echo 'pathprepend "${PATH_Z3}" "${PATH_OPTIMATHSAT}"'
     echo ""
@@ -264,7 +267,8 @@ pathprepend()
     echo "export SETUP_TOOLS_PATH=\"${args["setup_tools"]}\""
     echo 'export PYTHONPATH="${PYTHONPATH}":"${WCET_LIB_PATH}"'
     echo 'pathprepend "${WCET_LIB_PATH}" "${SETUP_TOOLS_PATH}"'
-
+    echo ""
+    echo 'export LD_LIBRARY_PATH="${LIB_Z3}":"${LD_LIBRARY_PATH}"'
     return 0;
 }
 
