@@ -509,6 +509,8 @@ function wcet_run_experiment ()
         file_name="${file%.*}"
         file_ext="${file##*.}"
 
+        [[ "${file}" =~ /.ignore/ ]] && continue;
+
         # skip `.bc` if original `.c` exists
         [ "${file_ext}" = "bc" ] && [ -f "${file_name}.c" ] && [ -r "${file_name}.c" ] && \
             { continue; }
@@ -655,6 +657,8 @@ function wcet_delete_files ()
     do
         file_name="${file%.*}"
         file_ext="${file##*.}"
+
+        [[ "${file}" =~ /.ignore/ ]] && continue;
 
         # skip `.bc` if there is no `.c`
         [ "${file_ext}" != "bc" ] || [ -f "${file_name}.c" ] || [ -r "${file_name}.c" ] || \
