@@ -19,7 +19,7 @@ in the root directory and *follow the instructions*.
 Please note that the following packages and tools, or their equivalent for your own distribution,
 should be installed on your system in order to successfully install the required resources:
 
-- coreutils         # (timeout)
+- coreutils         # (timeout, realpath)
 - make
 - g++
 - curl
