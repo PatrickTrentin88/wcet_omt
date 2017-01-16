@@ -19,15 +19,15 @@ in the root directory and *follow the instructions*.
 Please note that the following packages and tools, or their equivalent for your own distribution,
 should be installed on your system in order to successfully install the required resources:
 
-- coreutils
+- coreutils         # (timeout)
 - make
 - g++
-- libgmp3-dev
-- libmpfr-dev
 - curl
 - cmake
 - flex
 - bison
+- libgmp3-dev
+- libmpfr-dev
 - libboost-all-dev
 - libncurses5-dev
 
@@ -82,6 +82,8 @@ mentioned by
     HANDLER UIDS
         z3_0                    -- z3          + default encoding
         z3_0_cuts               -- z3          + default encoding + cuts
+        smtopt_0                -- smtopt      + default encoding
+        smtopt_0_cuts           -- smtopt      + default encoding + cuts
         optimathsat_0           -- optimathsat + default encoding
         optimathsat_0_cuts      -- optimathsat + default encoding + cuts
         optimathsat_1_sn        -- optimathsat + assert-soft enc. +      + sorting networks

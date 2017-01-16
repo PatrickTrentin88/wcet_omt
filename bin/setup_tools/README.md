@@ -19,15 +19,15 @@ Some of the resources may require being compiled. The following
 is a non-exhaustive list of required packages for building
 the source code:
 
-- coreutils
+- coreutils         # (timeout)
 - make
 - g++
-- libgmp3-dev
-- libmpfr-dev
 - curl
 - cmake
 - flex
 - bison
+- libgmp3-dev
+- libmpfr-dev
 - libboost-all-dev
 - libncurses5-dev
 
