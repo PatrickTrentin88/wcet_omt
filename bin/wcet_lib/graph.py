@@ -320,6 +320,29 @@ class SourceCodeGraph:
             step *= 2
         return semantic_cuts
 
+    def _has_loop(self, src_uid):
+        visited_uids = []
+        to_visit_uids = [src_uid]
+        while len(to_visit_uids) > 0:
+            cur_uid = to_visit_uids[0]
+            cur_node = self._nodes[cur_uid]
+            for succ_uid in cur_node.get_successors():
+                if succ_uid == src_uid:
+                    print ";; loop: " + str(visited_uids)
+                    return 1
+                if succ_uid not in visited_uids and succ_uid not in to_visit_uids:
+                    to_visit_uids.append(succ_uid)
+            visited_uids.append(cur_uid)
+            to_visit_uids = to_visit_uids[1:]
+        return 0
+
+    def has_loop(self):
+        for uid in self._nodes.keys():
+            ret = self._has_loop(uid)
+            if ret > 0:
+                return 1
+	return 0
+
     def _get_semantic_cuts(self, cuts_file, compute_recursive_cuts):
         """returns a list of semantic cuts, including both those taken from
         file and those computed on-the-fly.""" 

@@ -51,6 +51,12 @@ def main():
     if opts.printcutslist:
         graph.dump_cuts_list(opts.printcutslist)
 
+    # detect loops
+    ret = graph.has_loop()
+    if ret > 0:
+        print(";; ERROR: loop detected.")
+        quit(1)
+
     # Dump Graph over Environment
     graph.add_graph_to_env(env, opts.encoding)
 
