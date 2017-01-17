@@ -112,7 +112,7 @@ index edd7039..d16a771 100644
 @@ -1,7 +1,11 @@
  Z3_PATH	= ../../external/z3
 -CC		= g++
-+CC		= g++ -std=c++11
++CC		= g++ -std=c++0x
  
  
  all:
