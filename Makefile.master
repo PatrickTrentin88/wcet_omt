@@ -66,6 +66,8 @@ version :
 default_all : \
 	z3_0 \
 	z3_0_cuts \
+	smtopt_0 \
+	smtopt_0_cuts \
 	optimathsat_0 \
 	optimathsat_0_cuts \
 	optimathsat_1_sn \
