@@ -342,38 +342,37 @@ class SourceCodeGraph:
         result is undefined.
         """
         # NOTE: at the time being the reason why it was chosen to include edges
-        #   that belong to any path to the returned list, is unclear to me. 
+        #   that belong to any path to the returned list, is unclear to me.
         to_visit_uids = [dst_uid]
-        visited_uids = []
         node_costs = {}
         node_succs = {}
         subgraph_edge_uids = []
         subgraph_node_uids = [src_uid]
         dsp = 0
 
-        # precompute to_visit on graph sub-sets
-        if dst_uid != self._end_uid:
-            visited_uids = copy.deepcopy(self._nodes.keys())
-            lvisited_uids = []
-            while len(to_visit_uids) > 0:
-                cur_uid = to_visit_uids[0]
-                cur_node = self._nodes[cur_uid]
+        # NOTE: the generated block graph might contain dead ends, thus
+        # visited_uids must be pre-computed
+        visited_uids = copy.deepcopy(self._nodes.keys())
+        lvisited_uids = []
+        while len(to_visit_uids) > 0:
+            cur_uid = to_visit_uids[0]
+            cur_node = self._nodes[cur_uid]
 
-                if cur_uid in visited_uids:
-                    visited_uids.remove(cur_uid)
+            if cur_uid in visited_uids:
+                visited_uids.remove(cur_uid)
 
-                for pred_uid in cur_node.get_predecessors():
-                    if pred_uid not in to_visit_uids and pred_uid not in lvisited_uids:
-                        to_visit_uids.append(pred_uid)
+            for pred_uid in cur_node.get_predecessors():
+                if pred_uid not in to_visit_uids and pred_uid not in lvisited_uids:
+                    to_visit_uids.append(pred_uid)
 
-                to_visit_uids = to_visit_uids[1:]
-                lvisited_uids.append(cur_uid)
+            to_visit_uids = to_visit_uids[1:]
+            lvisited_uids.append(cur_uid)
 
-            to_visit_uids = [dst_uid]
+        to_visit_uids = [dst_uid]
 
         # reverse graph exploration
         while 0 < len(to_visit_uids):
-            assert(dsp < len(to_visit_uids))
+            assert(dsp < len(to_visit_uids))	# dead ends!
 
             cur_uid = to_visit_uids[dsp]
             cur_node = self._nodes[cur_uid]
@@ -484,10 +483,29 @@ class SourceCodeGraph:
     def _compute_paths_among(self, src_uid, dst_uid):
         """computes the number of paths from src_uid to dst_uid."""
         to_visit_uids = [dst_uid]
-        visited_uids = []
         paths = {}
         idx = 0
         dsp = 0
+
+        # NOTE: the generated block graph might contain dead ends, thus
+        # visited_uids must be pre-computed
+        visited_uids = copy.deepcopy(self._nodes.keys())
+        lvisited_uids = []
+        while len(to_visit_uids) > 0:
+            cur_uid = to_visit_uids[0]
+            cur_node = self._nodes[cur_uid]
+
+            if cur_uid in visited_uids:
+                visited_uids.remove(cur_uid)
+
+            for pred_uid in cur_node.get_predecessors():
+                if pred_uid not in to_visit_uids and pred_uid not in lvisited_uids:
+                    to_visit_uids.append(pred_uid)
+
+            to_visit_uids = to_visit_uids[1:]
+            lvisited_uids.append(cur_uid)
+
+        to_visit_uids = [dst_uid]
 
         while idx < len(to_visit_uids):
             assert(idx + dsp < len(to_visit_uids))
