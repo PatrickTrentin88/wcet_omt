@@ -232,6 +232,8 @@ function pagai_install ()
     pushd "${1}/pagai"
 
     (
+        rm CMakeCache.txt &>/dev/null
+
         log "pagai auto-installation ..."
 
         log_cmd "./autoinstall.sh &> \"${2}\""
