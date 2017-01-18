@@ -320,19 +320,31 @@ class SourceCodeGraph:
             step *= 2
         return semantic_cuts
 
+    def _get_semantic_cuts(self, cuts_file, compute_recursive_cuts):
+        """returns a list of semantic cuts, including both those taken from
+        file and those computed on-the-fly."""
+        sc1 = []
+        sc2 = []
+        if cuts_file is not None:
+            sc1 = self._load_semantic_cuts_from_file(cuts_file)
+        if compute_recursive_cuts:
+            sc2 = self._compute_semantic_cuts()
+        return sc1 + sc2
+
     def _has_loop(self, src_uid):
         visited_uids = []
         to_visit_uids = [src_uid]
         while len(to_visit_uids) > 0:
             cur_uid = to_visit_uids[0]
             cur_node = self._nodes[cur_uid]
+            visited_uids.append(cur_uid)
             for succ_uid in cur_node.get_successors():
                 if succ_uid == src_uid:
+                    visited_uids.append(succ_uid)
                     print ";; loop: " + str(visited_uids)
                     return 1
                 if succ_uid not in visited_uids and succ_uid not in to_visit_uids:
                     to_visit_uids.append(succ_uid)
-            visited_uids.append(cur_uid)
             to_visit_uids = to_visit_uids[1:]
         return 0
 
@@ -342,17 +354,6 @@ class SourceCodeGraph:
             if ret > 0:
                 return 1
 	return 0
-
-    def _get_semantic_cuts(self, cuts_file, compute_recursive_cuts):
-        """returns a list of semantic cuts, including both those taken from
-        file and those computed on-the-fly.""" 
-        sc1 = []
-        sc2 = []
-        if cuts_file is not None:
-            sc1 = self._load_semantic_cuts_from_file(cuts_file)
-        if compute_recursive_cuts:
-            sc2 = self._compute_semantic_cuts()
-        return sc1 + sc2
 
     def _compute_longest_path_cut(self, src_uid, dst_uid):
         """returns the maximal cost of a path connecting src_uid to dst_uid,
@@ -395,7 +396,7 @@ class SourceCodeGraph:
 
         # reverse graph exploration
         while 0 < len(to_visit_uids):
-            assert(dsp < len(to_visit_uids))	# dead ends!
+            assert(dsp < len(to_visit_uids))	# dead ends or loops
 
             cur_uid = to_visit_uids[dsp]
             cur_node = self._nodes[cur_uid]
