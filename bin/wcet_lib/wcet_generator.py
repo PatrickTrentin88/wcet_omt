@@ -37,6 +37,12 @@ def main():
             print(";; ERROR: matching file does not exist, ignored.")
             quit(1)
 
+    # detect loops
+    ret = graph.has_loop()
+    if ret > 0:
+        print(";; ERROR: loop detected.")
+        quit(1)
+
     # Compute and add cuts
     if not opts.nosummaries:
         graph.add_dominator_cuts()
@@ -50,12 +56,6 @@ def main():
         graph.dump_longest_syntactic_path(opts.printlongestsyntactic)
     if opts.printcutslist:
         graph.dump_cuts_list(opts.printcutslist)
-
-    # detect loops
-    ret = graph.has_loop()
-    if ret > 0:
-        print(";; ERROR: loop detected.")
-        quit(1)
 
     # Dump Graph over Environment
     graph.add_graph_to_env(env, opts.encoding)
