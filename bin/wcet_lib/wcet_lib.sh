@@ -99,6 +99,11 @@ function wcet_gen_blocks()
     (( ${#} == 2 )) && solver="${2}" || solver="z3";
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
+        pagai -i "${1}" -s "${solver}" --wcet --skipnonlinear --loop-unroll &>/dev/null # preliminary sig-sev test
+        if (( "${?}" == 139 )); then
+            warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 2))" "pagai segmentation fault with  <${1}>"; return 139;
+        fi
+
         log_cmd "pagai -i \"${1}\" -s \"${solver}\" --wcet --printformula --skipnonlinear --loop-unroll > \"${dst_file}\""
         pagai -i "${1}" -s "${solver}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
@@ -158,12 +163,14 @@ function wcet_gen_omt()
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "wcet_generator.py ${options[*]} \"${1}\" > \"${dst_file}\""
         wcet_generator.py "${options[@]}" "${1}" > "${dst_file}" || \
-            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}"; };
-
-        errmsg="$(grep ";; ERROR" "${dst_file}" | cut -d\  -f 4-)"
-        if [ -n "${errmsg}" ]; then
-            error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 5))" "${errmsg:: -1}"; return "${?}";
-        fi
+        {
+            errmsg="$(grep ";; ERROR" "${dst_file}" | cut -d\  -f 3-)";
+            if [ -n "${errmsg}" ]; then
+                error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 5))" "${errmsg:: -1}"; return "${?}";
+            else
+                error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "wcet_generator.py error" "${?}"; return "${?}";
+            fi
+        };
     fi
 
     wcet_gen_omt="${dst_file}"
