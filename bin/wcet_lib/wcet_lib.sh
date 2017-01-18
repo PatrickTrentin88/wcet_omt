@@ -73,7 +73,7 @@ function wcet_bytecode_optimization()
     dst_file="${dst_file::-3}.bc"
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "llvm-as -o \"${dst_file}\" \"${src_file}\""
-        llvm-as -o "${src_file}" "${dst_file}" || \
+        llvm-as -o "${dst_file}" "${src_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "llvm-as error" "${?}"; return "${?}"; };
     fi
 
