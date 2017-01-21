@@ -98,3 +98,6 @@ z3
 *.smt2
 *.ll
 *.gen
+*.opt.bc
+*.unr.bc
+*.unr.err
