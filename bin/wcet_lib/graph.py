@@ -77,12 +77,6 @@ class SourceCodeGraph:
 
             if block_var == self._start_var:
                 block_var = block_var.replace("bd_", "bs_")
-            # NOTE: should be equivalent to previous branch [?assumptions?]
-            if block_var == "bd_0":
-                block_var = "bs_0"
-            # NOTE: rationale unknown [?assumptions?]
-            if block_var == "bd_1":
-                block_var = "bs_1"
 
             b = Node(block_var, block_label, block_cost, block_dominator, self)
 
@@ -241,8 +235,8 @@ class SourceCodeGraph:
     def _add_graph_to_env_with_difference_logic(self, env, encoding):
         """applies a Difference Logic based encoding to the graph."""
         opts = {
-            "mutex_edges" : False,
-            "edge_implies_nodes" : False,
+            "mutex_edges" : True,
+            "edge_implies_nodes" : True,
         }
 
         # add nodes
