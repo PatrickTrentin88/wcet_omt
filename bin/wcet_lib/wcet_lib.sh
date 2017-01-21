@@ -56,7 +56,6 @@ function wcet_bytecode_optimization()
     is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
     [[ "${1}" =~ .bc$ ]] && dst_file="${1:: -3}.opt.ll" || dst_file="${1}.opt.ll"
 
-
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "pagai -i \"${1}\" --dump-ll --wcet --loop-unroll > \"${dst_file}\""
         pagai -i "${1}" --dump-ll --wcet --loop-unroll > "${dst_file}" || \
@@ -78,6 +77,36 @@ function wcet_bytecode_optimization()
     fi
 
     wcet_bytecode_optimization="${dst_file}"
+    return 0;
+}
+
+# wcet_unroll_loops:
+#   attempts a removal of graph loops through unrolling
+#       ${1}        -- full path to bytecode file (ext: `.bc`)
+#       return ${wcet_bytecode_optimization}
+#                   -- full path to optimized file (ext: `.unr.bc`)
+#
+# shellcheck disable=SC2034
+function wcet_unroll_loops()
+{
+    wcet_unroll_loops=
+    local dst_file= ; local err_file= ; local errmsg= ;
+
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    [[ "${1}" =~ .bc$ ]] && dst_file="${1:: -3}.unr.bc" || dst_file="${1}.unr.bc"
+    [[ "${1}" =~ .bc$ ]] && err_file="${1:: -3}.unr.err" || err_file="${1}.unr.err"
+
+    if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
+        # NOTE: the following options are omitted since result in partial unrolling
+        # -unroll-allow-partial
+        # -unroll-count=N
+        log_cmd "opt -mem2reg -simplifycfg -loops -lcssa -loop-rotate -loop-unroll -debug -unroll-threshold=1000000000 \"${1}\" -o \"${dst_file}\" &>\"${err_file}\""
+
+        opt -mem2reg -simplifycfg -loops -lcssa -loop-rotate -loop-unroll -debug -unroll-threshold=1000000000 "${1}" -o "${dst_file}" &>"${err_file}" || \
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "opt error, see <${err_file}>" "${?}"; return "${?}"; };
+    fi
+
+    wcet_unroll_loops="${dst_file}"
     return 0;
 }
 
@@ -499,6 +528,7 @@ function wcet_parse_output ()
 #   the result within a similar folder structure in the target directory
 #       ${1}        -- full path to the benchmark directory
 #       ${2}        -- full path to the statistics directory
+#       ${3}        -- if != 0, then attempt unroll of all formulas
 #       [...]       -- keywords `{*}`, where `{*}` is the id
 #                      of a handler with name `wcet_{*}_handler`
 #
@@ -522,14 +552,18 @@ function wcet_run_experiment ()
         [ "${file_ext}" = "bc" ] && [ -f "${file_name}.c" ] && [ -r "${file_name}.c" ] && \
             { continue; }
 
-        for test_conf in "${@:3}"
+        # skip generated `.opt.bc` and `.unr.bc` files
+        [[ "${file}" =~ .opt.bc$ ]] && continue;
+        [[ "${file}" =~ .unr.bc$ ]] && continue;
+
+        for test_conf in "${@:4}"
         do
             local dest_dir= ;
             dest_dir="${2}/${test_conf}"
 
             wcet_replicate_dirtree "${1}" "${dest_dir}" "${file}" || return "${?}"
 
-            wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}"
+            wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}" "${3}"
         done
     done < <(find "${1}" \( -name "*.c" -o -name "*.bc" \) )
 }
@@ -578,6 +612,7 @@ function wcet_replicate_dirtree ()
 #       ${2}        -- full path to the benchmark file
 #       ${3}        -- full path to benchmark file under statistics folder tree
 #                      stripped of its extension
+#       ${4}        -- if != 0, then attempt unroll of all formulas
 #       return ${wcet_handle_file}
 #                   -- full path to the file in which benchmark data has been logged
 #
@@ -601,6 +636,13 @@ function wcet_handle_file ()
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate bytecode for <${2}>" "${?}"; return "${?}"; };
     else
         wcet_gen_bytecode="${2}"
+    fi
+
+    # Optional: attempt to remove loops from code
+    if (( ${4} )); then
+        wcet_unroll_loops "${wcet_gen_bytecode}" || \
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to unroll loops for <${wcet_gen_bytecode}>" "${?}"; return "${?}"; };
+        wcet_gen_bytecode="${wcet_unroll_loops}"
     fi
 
     # 2. generate smt2 + blocks file
@@ -667,8 +709,9 @@ function wcet_delete_files ()
 
         [[ "${file}" =~ /.ignore/ ]] && continue;
 
-        # skip `.bc` if there is no `.c`
-        [ "${file_ext}" != "bc" ] || [ -f "${file_name}.c" ] || [ -r "${file_name}.c" ] || \
+        # skip `.bc` if there is no `.c` (unless it is `.opt.bc` or `.unr.bc`)
+        [ "${file_ext}" != "bc" ] || [[ "${file}" =~ .opt.bc$ ]] || [[ "${file}" =~ .unr.bc$ ]] \
+                                  || [ -f "${file_name}.c" ] || [ -r "${file_name}.c" ] || \
             { continue; }
 
         rm -v "${file}" || errors=$((errors + 1))
