@@ -36,6 +36,10 @@ ifeq ($(DEBUG), 1)
 endif											# -c   : print calls to external commands
 												# -w   : print warnings
 
+ifeq ($(UNROLL), 1)
+	WCET_RUN_FLAGS  += -u						# -u   : attempt unrolling loops
+endif
+
 ###                                           ###
 ###                                           ###
 ###                                           ###

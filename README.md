@@ -109,7 +109,18 @@ The scripts are designed to print any **error** that might be encountered. Howev
 output nice and clean, relevant debugging information is hidden by default. To enable it, type:
 
      ~$ pushd bench/test
-     ~$ export -f DEBUG=1
+     ~$ export DEBUG=1
      ~$ make all
      ~$ popd
 
+#### LOOP UNROLLING
+
+Loops are not supported and need to be unrolled. By default, loops in the bytecode are not 
+optimized out. To enable this feature, type:
+
+     ~$ pushd bench/test
+     ~$ export UNROLL=1
+     ~$ make all
+     ~$ popd
+
+Loop unrolling might fail, please refer to the loop unrolling log file for more information.
