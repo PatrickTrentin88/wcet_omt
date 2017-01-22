@@ -128,13 +128,13 @@ function wcet_gen_blocks()
     (( ${#} == 2 )) && solver="${2}" || solver="z3";
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
-        pagai -i "${1}" -s "${solver}" --wcet --skipnonlinear --loop-unroll &>/dev/null # preliminary sig-sev test
+        pagai -i "${1}" --wcet --skipnonlinear --loop-unroll &>/dev/null # preliminary sig-sev test
         if (( "${?}" == 139 )); then
             warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 2))" "pagai segmentation fault with  <${1}>"; return 139;
         fi
 
-        log_cmd "pagai -i \"${1}\" -s \"${solver}\" --wcet --printformula --skipnonlinear --loop-unroll > \"${dst_file}\""
-        pagai -i "${1}" -s "${solver}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
+        log_cmd "pagai -i \"${1}\" --wcet --printformula --skipnonlinear --loop-unroll > \"${dst_file}\""
+        pagai -i "${1}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
         # pagai does not set error status
