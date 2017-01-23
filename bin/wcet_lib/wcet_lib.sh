@@ -541,6 +541,8 @@ function wcet_run_experiment ()
 
     set -- "$(realpath "${1}")" "$(realpath "${2}")" "${@:3}"
 
+    find "${2}" -name "*.txt" -type f -delete &>/dev/null
+
     while read -r file
     do
         file_name="${file%.*}"
@@ -597,9 +599,10 @@ function wcet_replicate_dirtree ()
     mkdir -p "$(dirname "${dest_file}")" 2>/dev/null || \
         { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to replicate folder tree" "${?}"; return "${?}"; };
 
-    stats_file="${2}/$(basename "${2}").log"
-    wcet_print_header > "${stats_file}" || \
-        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${stats_file}> can not be created or overwritten" "${?}"; return "${?}"; };
+    stats_file="${2}/$(basename "${2}").txt"
+    [ -f "${stats_file}" ] || \
+        wcet_print_header > "${stats_file}" || \
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${stats_file}> can not be created or overwritten" "${?}"; return "${?}"; };
 
     wcet_replicate_dirtree="${dest_file}"
     return 0
@@ -657,7 +660,7 @@ function wcet_handle_file ()
         { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
 
     # 4. store data
-    stats_file="${1}/$(basename "${1}").log"
+    stats_file="${1}/$(basename "${1}").txt"
     [ -n "${!func_name}" ] || \
         { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
     echo "${!func_name}" >> "${stats_file}"
