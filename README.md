@@ -53,7 +53,7 @@ As the experiment runs, the following *folder structure* is added to the file-sy
         |-- stats
             |-- bench
                 |-- optimathsat_0
-                |   |-- optimathsat_0.log        # summary of relevant benchmark information
+                |   |-- optimathsat_0.txt        # summary of relevant benchmark information
                 |   |-- benchmark_1.log
                 |   |-- ...
                 |   |-- benchmark_i.log          # the omt solver's output for i-th benchmark
@@ -61,7 +61,7 @@ As the experiment runs, the following *folder structure* is added to the file-sy
                 |   |-- benchmark_N.log
                 |
                 |-- optimathsat_2_dl_1
-                    |-- optimathsat_2_dl_1.log   # summary of relevant benchmark information
+                    |-- optimathsat_2_dl_1.txt   # summary of relevant benchmark information
                     |-- benchmark_1.log
                     |-- ...
                     |-- benchmark_i.log          # the omt solver's output for i-th benchmark
