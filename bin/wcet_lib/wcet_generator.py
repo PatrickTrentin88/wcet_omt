@@ -105,8 +105,8 @@ def preload_smt_env(smt_formula):
             continue # ignore
         elif "set-logic" in d:
             continue # ignore
-		elif "check-sat" in d:
-			continue # ignore
+        elif "check-sat" in d:
+            continue # ignore
         elif 'declare-fun' in d:
             env.add_declaration(d)
         else:
