@@ -114,9 +114,9 @@ def preload_smt_env(smt_formula):
     # NOTE: I won't waste time trying to format better the bloat of SMT2 code
     # I receive as input, even though it's ugly and hard to follow due to poor
     # inlining
+    f = f.replace("(check-sat)", "")
     f = "(assert " + f
     f = '\n'.join([l for l in f.split('\n') if l.strip() != '']) # remove ugly empty space
-    f = f.replace("(check-sat)", "")
     env.assert_formula(f)
     return env
 
