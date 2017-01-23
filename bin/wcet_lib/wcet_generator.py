@@ -116,6 +116,7 @@ def preload_smt_env(smt_formula):
     # inlining
     f = "(assert " + f
     f = '\n'.join([l for l in f.split('\n') if l.strip() != '']) # remove ugly empty space
+    f = f.replace("(check-sat)", "")
     env.assert_formula(f)
     return env
 
