@@ -56,14 +56,14 @@ function warning()
 function log_cmd()
 {
     (( 0 == VERBOSE_COMMANDS )) && return 1
-    echo -e "${GREEN}[log]  ~\$${NORMAL} ${1}"
+    echo -e "${GREEN}[log]  ~\$${NORMAL} ${@}"
     return 0
 }
 
 function log()
 {
     (( 0 == VERBOSE_WORKFLOW )) && return 1
-    echo -e "${BLUE}[log]  <<${NORMAL} ${1}"
+    echo -e "${BLUE}[log]  <<${NORMAL} ${@}"
     return 0
 }
 
