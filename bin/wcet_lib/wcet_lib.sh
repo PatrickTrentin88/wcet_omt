@@ -780,7 +780,7 @@ function wcet_delete_files ()
             { continue; }
 
         rm -v "${file}" || errors=$((errors + 1))
-    done < <(find "${1}" \( -name "*.bc" -o -name "*.gen" -o -name "*.ll" -o -name "*.smt2" -o -name "*.smt" -o -name "*.longestsyntactic" -o -name "*.llvmtosmtmatch" \) -type f)
+    done < <(find "${1}" \( -name "*.bc" -o -name "*.gen" -o -name "*.ll" -o -name "*.smt2" -o -name "*.smt" -o -name "*.err" -o -name "*.longestsyntactic" -o -name "*.llvmtosmtmatch" \) -type f)
 
     return $((errors))
 }
