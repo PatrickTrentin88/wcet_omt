@@ -18,7 +18,7 @@ SKIP_EXISTING=$((0))
 
 # wcet_gen_bytecode:
 #   generates bytecode from a C source code file
-#       ${1}        -- full path to C file (ext: `.c`)
+#       ...         -- full path to C file (ext: `.c`)
 #       return ${wcet_gen_bytecode}
 #                   -- full path to bytecode file (ext: `.bc`)
 #
@@ -28,13 +28,35 @@ function wcet_gen_bytecode()
     wcet_gen_bytecode=
     local dst_file=
 
-    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
-    [[ "${1}" =~ .c$ ]] && dst_file="${1:: -2}.bc" || dst_file="${1}.bc"
+    for file in "${@}";
+    do
+        is_readable_file "${file}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    done
+
+    # ASSUMPTION:
+    # - either compile each `.c` file in a directory one-by-one
+    # - or compile all `.c` files in a directory
+    # if broken, dst_file name should be chosen differently!
+    (( 1 == "${#}" )) && dst_file="${1}" || \
+        dst_file="$(dirname "${1}")/merged_$(basename "$(dirname "${1}")")"
+
+    [[ "${dst_file}" =~ \.c$ ]] && dst_file="${dst_file:: -2}.bc" || dst_file="${dst_file}.bc"
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
-        log_cmd "clang -emit-llvm -c \"${1}\" -o \"${dst_file}\""
-        clang -emit-llvm -c "${1}" -o "${dst_file}" || \
-            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to generate bytecode" "${?}"; return "${?}"; };
+
+        if (( 1 == "${#}" )); then
+            log_cmd "clang -emit-llvm -c \"${@}\" -o \"${dst_file}\""
+            clang -emit-llvm -c "${@}" -o "${dst_file}" || \
+                { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to generate bytecode" "${?}"; return "${?}"; };
+        else
+            log_cmd "clang -emit-llvm -c \"${@}\""
+            clang -emit-llvm -c "${@}" || \
+                { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "unable to generate bytecode" "${?}"; return "${?}"; };
+
+            llvm-link -o="${dst_file}" "${@/%.c/.bc}"
+
+            rm "${@/%.c/.bc}" 2>/dev/null
+        fi
     fi
 
     wcet_gen_bytecode="${dst_file}"
@@ -54,7 +76,7 @@ function wcet_bytecode_optimization()
     local dst_file= ; local errmsg= ;
 
     is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
-    [[ "${1}" =~ .bc$ ]] && dst_file="${1:: -3}.opt.ll" || dst_file="${1}.opt.ll"
+    [[ "${1}" =~ \.bc$ ]] && dst_file="${1:: -3}.opt.ll" || dst_file="${1}.opt.ll"
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "pagai -i \"${1}\" --dump-ll --wcet --loop-unroll > \"${dst_file}\""
@@ -93,16 +115,17 @@ function wcet_unroll_loops()
     local dst_file= ; local err_file= ; local errmsg= ;
 
     is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
-    [[ "${1}" =~ .bc$ ]] && dst_file="${1:: -3}.unr.bc" || dst_file="${1}.unr.bc"
-    [[ "${1}" =~ .bc$ ]] && err_file="${1:: -3}.unr.err" || err_file="${1}.unr.err"
+    [[ "${1}" =~ \.bc$ ]] && dst_file="${1:: -3}.unr.bc" || dst_file="${1}.unr.bc"
+    [[ "${1}" =~ \.bc$ ]] && err_file="${1:: -3}.unr.err" || err_file="${1}.unr.err"
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         # NOTE: the following options are omitted since result in partial unrolling
         # -unroll-allow-partial
         # -unroll-count=N
-        log_cmd "opt -mem2reg -simplifycfg -loops -lcssa -loop-rotate -loop-unroll -debug -unroll-threshold=1000000000 \"${1}\" -o \"${dst_file}\" &>\"${err_file}\""
+        # NOTE: -Oz is fundamental to reduce #blocks and #paths to a reasonable size
+        log_cmd "opt -Oz -mem2reg -simplifycfg -loops -lcssa -loop-rotate -loop-unroll -debug -unroll-threshold=1000000000 \"${1}\" -o \"${dst_file}\" &>\"${err_file}\""
 
-        opt -mem2reg -simplifycfg -loops -lcssa -loop-rotate -loop-unroll -debug -unroll-threshold=1000000000 "${1}" -o "${dst_file}" &>"${err_file}" || \
+        opt -Oz -mem2reg -simplifycfg -loops -lcssa -loop-rotate -loop-unroll -debug -unroll-threshold=1000000000 "${1}" -o "${dst_file}" &>"${err_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "opt error, see <${err_file}>" "${?}"; return "${?}"; };
     fi
 
@@ -124,17 +147,17 @@ function wcet_gen_blocks()
     local dst_file= ; local errmsg= ;
 
     is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
-    [[ "${1}" =~ .bc$ ]] && dst_file="${1:: -3}.gen" || dst_file="${1}.gen"
+    [[ "${1}" =~ \.bc$ ]] && dst_file="${1:: -3}.gen" || dst_file="${1}.gen"
     (( ${#} == 2 )) && solver="${2}" || solver="z3";
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
-        pagai -i "${1}" --wcet --skipnonlinear --loop-unroll &>/dev/null # preliminary sig-sev test
+        pagai -i "${1}" --wcet --skipnonlinear --loop-unroll -s z3 &>/dev/null # preliminary sig-sev test
         if (( "${?}" == 139 )); then
             warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 2))" "pagai segmentation fault with  <${1}>"; return 139;
         fi
 
-        log_cmd "pagai -i \"${1}\" --wcet --printformula --skipnonlinear --loop-unroll > \"${dst_file}\""
-        pagai -i "${1}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
+        log_cmd "pagai -i \"${1}\" --wcet --printformula --skipnonlinear --loop-unroll -s z3 > \"${dst_file}\""
+        pagai -i "${1}" --wcet --printformula --skipnonlinear --loop-unroll -s z3 > "${dst_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
         # pagai does not set error status
@@ -175,7 +198,7 @@ function wcet_gen_omt()
     [ -n "${4}" ] && no_summaries=$((${4}))   || no_summaries=$((0))
     [ -n "${5}" ] && print_matching=$((${5})) || print_matching=$((0))
     [ -n "${6}" ] && print_maxpath=$((${6}))  || print_maxpath=$((0))
-    [[ "${1}" =~ .gen$ ]] && dst_base="${1:: -4}" || dst_base="${1}"
+    [[ "${1}" =~ \.gen$ ]] && dst_base="${1:: -4}" || dst_base="${1}"
 
     if (( 0 != no_summaries )); then
         dst_file="${dst_base}.${encoding}.smt2"
@@ -385,7 +408,7 @@ function wcet_run_omt_solver ()
         wcet_run_smtopt "${@:2}" || return "${?}"
         wcet_run_omt_solver="${wcet_run_smtopt}"
     else
-        error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "unknown smt2 solver <${1}>" && exit "${?}"
+        error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "unknown smt2 solver <${1}>" && return "${?}"
     fi
 
     return 0;
@@ -479,7 +502,7 @@ function wcet_parse_output ()
     (( is_unknown )) && is_sat=$((0)) # optimathsat prints sat for partially optimized problems
 
     (( ( is_unknown + is_unsat + is_sat ) == 1 )) || \
-        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "parsed multiple search statuses, see <${2}>"; exit 1; };
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "parsed multiple search statuses, see <${2}>"; return 1; };
 
     (( is_unknown )) && args["status"]="unknown"
     (( is_unsat ))   && args["status"]="unsat"
@@ -502,7 +525,7 @@ function wcet_parse_output ()
             args["opt_value"]="$(grep "maximum value of " "${2}" | cut -d\  -f 7)"
             solver="smtopt"
         else
-            error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "nothing to parse" && exit "${?}"
+            error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "nothing to parse" && return "${?}"
         fi
     fi
 
@@ -548,15 +571,11 @@ function wcet_run_experiment ()
         file_name="${file%.*}"
         file_ext="${file##*.}"
 
-        [[ "${file}" =~ /.ignore/ ]] && continue;
-
-        # skip `.bc` if original `.c` exists
-        [ "${file_ext}" = "bc" ] && [ -f "${file_name}.c" ] && [ -r "${file_name}.c" ] && \
-            { continue; }
+        [[ "${file}" =~ /\.ignore/ ]] && continue;
 
         # skip generated `.opt.bc` and `.unr.bc` files
-        [[ "${file}" =~ .opt.bc$ ]] && continue;
-        [[ "${file}" =~ .unr.bc$ ]] && continue;
+        [[ "${file}" =~ \.opt\.bc$ ]] && continue;
+        [[ "${file}" =~ \.unr\.bc$ ]] && continue;
 
         for test_conf in "${@:4}"
         do
@@ -567,8 +586,51 @@ function wcet_run_experiment ()
 
             wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}" "${3}"
         done
-    done < <(find "${1}" \( -name "*.c" -o -name "*.bc" \) )
+    done < <(find "${1}" -name "*.bc" )
 }
+
+# wcet_generate_bc:
+#   recursively explores a benchmark directory looking for `.c` files,
+#   and generates corresponding bytecode files.
+#       ${1}        -- full path to the benchmark directory
+#       ${2}        -- if != 0, then compile together all `.c` in a directory
+#
+function wcet_generate_bc ()
+{
+    local file_name= ; local file_ext= ;
+
+    is_directory "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+
+    set -- "$(realpath "${1}")" "${@:2}"
+
+    while read -r dir_path
+    do
+        [[ "${dir_path}" =~ /\.ignore/ ]] && continue;
+
+        if (( ${2} )); then
+            # all `.c` files are considered part of one executable
+            pushd "${dir_path}"
+
+            sources=($(find "${dir_path}" -maxdepth 1 -name "*.c"))
+
+            (( ${#sources[@]} <= 0 )) || \
+                wcet_gen_bytecode "${sources[@]}" || \
+                    { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate bytecode in directory <${dir_path}>"; continue; };
+
+            popd
+        else
+            # each `.c` file is considered a separate source code
+            while read -r file
+            do
+                wcet_gen_bytecode "${file}" || \
+                    { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate bytecode for <${file}>" "${?}"; continue; };
+
+            done < <( find "${dir_path}" -name "*.c" )
+        fi
+
+    done < <( find "${1}" -type d )
+}
+
 
 # wcet_replicate_dirtree:
 #   replicates folder structure used by a benchmark file within
@@ -609,7 +671,7 @@ function wcet_replicate_dirtree ()
 }
 
 # wcet_handle_file:
-#   given a `.bc` or `.c` file and a configuration, it runs the associated
+#   given a `.bc` file and a configuration, it runs the associated
 #   file handler over the file, and logs the experimental results
 #       ${1}        -- full path to statistics directory for a given configuration
 #       ${2}        -- full path to the benchmark file
@@ -633,13 +695,12 @@ function wcet_handle_file ()
     type -t "${func_name}" 2>/dev/null 1>&2 || \
         { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> is not a function, built-in or command" "${?}"; return "${?}"; };
 
-    # 1. bytecode generation if file is `.c` source code
-    if [ "${2##*.}" = "c" ]; then
-        wcet_gen_bytecode "${2}" || \
-            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "failed to generate bytecode for <${2}>" "${?}"; return "${?}"; };
-    else
-        wcet_gen_bytecode="${2}"
+    # 1. check extension
+    if [ "${2##*.}" != "bc" ]; then
+        error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO))" "<${2}> has the wrong file extension";
+        return 1;
     fi
+    wcet_gen_bytecode="${2}"
 
     # Optional: attempt to remove loops from code
     if (( ${4} )); then
@@ -710,10 +771,11 @@ function wcet_delete_files ()
         file_name="${file%.*}"
         file_ext="${file##*.}"
 
-        [[ "${file}" =~ /.ignore/ ]] && continue;
+        [[ "${file}" =~ /\.ignore/ ]] && continue;
 
-        # skip `.bc` if there is no `.c` (unless it is `.opt.bc` or `.unr.bc`)
-        [ "${file_ext}" != "bc" ] || [[ "${file}" =~ .opt.bc$ ]] || [[ "${file}" =~ .unr.bc$ ]] \
+        # skip `.bc` if there is no `.c` (unless it is `.opt.bc` or `.unr.bc` or `merged_*.bc`)
+        [ "${file_ext}" != "bc" ] || [[ "${file}" =~ \.opt\.bc$ ]] || [[ "${file}" =~ \.unr\.bc$ ]] \
+                                  || [[ "${file}" =~ merged_.*\.bc ]] \
                                   || [ -f "${file_name}.c" ] || [ -r "${file_name}.c" ] || \
             { continue; }
 

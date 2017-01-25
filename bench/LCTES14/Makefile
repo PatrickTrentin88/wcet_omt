@@ -29,6 +29,10 @@ ifeq ($(UNROLL), 1)
 	WCET_RUN_FLAGS  += -u						# -u   : attempt unrolling loops
 endif
 
+ifeq ($(MERGE), 1)
+	WCET_RUN_FLAGS  += -m						# -m   : all `.c` files in a directory are merged
+endif
+
 ###                                           ###
 ### user customizable rules                   ###
 ###                                           ###

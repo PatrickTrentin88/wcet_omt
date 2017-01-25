@@ -93,6 +93,12 @@ class SourceCodeGraph:
                         e = Edge(block_var, dst_var, 0, self)
                         self._edges[e.get_uid()] = e
 
+        if self._end_var is None:
+            assert(len(self._nodes.keys()) <= 1)
+            assert(len(self._edges.keys()) <= 0)
+            print(";; ERROR: graph has only one block.")
+            quit(1)
+
         # update start/end uids
         self._start_uid = self._label2uid[self._var2label[self._start_var]]
         self._end_uid = self._label2uid[self._var2label[self._end_var]]
