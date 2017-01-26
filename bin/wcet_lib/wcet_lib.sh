@@ -564,7 +564,10 @@ function wcet_run_experiment ()
 
     set -- "$(realpath "${1}")" "$(realpath "${2}")" "${@:3}"
 
-    find "${2}" -name "*.txt" -type f -delete &>/dev/null
+    for test_conf in "${@:4}"
+    do
+        find "${2}/${test_conf}" -name "*.txt" -type f -delete &>/dev/null
+    done
 
     while read -r file
     do
