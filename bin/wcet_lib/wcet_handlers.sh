@@ -66,6 +66,7 @@ function wcet_generic_handler()
 #       ${1}        -- full path to smt2+blocks file (ext: `.gen`)
 #       ${2}        -- full path to benchmark file under statistics folder
 #                      stripped of the file extension
+#		${3}		-- random seed for the omt solver, 0: ignored
 #       return ${wcet_{*}_handler}
 #                   -- the parsed benchmark statitics
 
@@ -140,6 +141,15 @@ function wcet_optimathsat_0_handler
     wcet_optimathsat_0_handler= ;
 
     optimathsat_locals=""
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 0 1 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_0_handler="${wcet_generic_handler}"
@@ -152,6 +162,15 @@ function wcet_optimathsat_0_cuts_handler
     wcet_optimathsat_0_cuts_handler= ;
 
     optimathsat_locals=""
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 0 0 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_0_cuts_handler="${wcet_generic_handler}"
@@ -174,6 +193,15 @@ function wcet_optimathsat_1_sn_handler
     optimathsat_locals+=" -optimization.card_constr_encoding=2"
     optimathsat_locals+=" -optimization.circuit_limit=20"
     optimathsat_locals+=" -optimization.maxsmt_encoding=31"
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 1 1 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_1_sn_handler="${wcet_generic_handler}"
@@ -189,6 +217,15 @@ function wcet_optimathsat_1_cuts_sn_handler
     optimathsat_locals+=" -optimization.card_constr_encoding=2"
     optimathsat_locals+=" -optimization.circuit_limit=20"
     optimathsat_locals+=" -optimization.maxsmt_encoding=31"
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 1 0 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_1_cuts_sn_handler="${wcet_generic_handler}"
@@ -207,6 +244,15 @@ function wcet_optimathsat_2_handler
     wcet_optimathsat_2_handler= ;
 
     optimathsat_locals=""
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 2 1 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_2_handler="${wcet_generic_handler}"
@@ -219,6 +265,15 @@ function wcet_optimathsat_2_cuts_handler
     wcet_optimathsat_2_cuts_handler= ;
 
     optimathsat_locals=""
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 2 0 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_2_cuts_handler="${wcet_generic_handler}"
@@ -235,6 +290,15 @@ function wcet_optimathsat_2_dl_1_handler
     optimathsat_locals+=" -theory.la.dl_filter_tlemmas=False"
     optimathsat_locals+=" -theory.la.dl_interpolation_mode=1"
     optimathsat_locals+=" -theory.la.dl_similarity_threshold=0.5"
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 2 1 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_2_dl_1_handler="${wcet_generic_handler}"
@@ -251,6 +315,15 @@ function wcet_optimathsat_2_cuts_dl_1_handler
     optimathsat_locals+=" -theory.la.dl_filter_tlemmas=False"
     optimathsat_locals+=" -theory.la.dl_interpolation_mode=1"
     optimathsat_locals+=" -theory.la.dl_similarity_threshold=0.5"
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 2 0 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_2_cuts_dl_1_handler="${wcet_generic_handler}"
@@ -267,6 +340,15 @@ function wcet_optimathsat_2_dl_2_handler
     optimathsat_locals+=" -theory.la.dl_filter_tlemmas=False"
     optimathsat_locals+=" -theory.la.dl_interpolation_mode=2"
     optimathsat_locals+=" -theory.la.dl_similarity_threshold=0.5"
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 2 1 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_2_dl_2_handler="${wcet_generic_handler}"
@@ -283,6 +365,15 @@ function wcet_optimathsat_2_cuts_dl_2_handler
     optimathsat_locals+=" -theory.la.dl_filter_tlemmas=False"
     optimathsat_locals+=" -theory.la.dl_interpolation_mode=2"
     optimathsat_locals+=" -theory.la.dl_similarity_threshold=0.5"
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 2 0 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_2_cuts_dl_2_handler="${wcet_generic_handler}"
@@ -299,6 +390,15 @@ function wcet_optimathsat_2_dl_3_handler
     optimathsat_locals+=" -theory.la.dl_filter_tlemmas=False"
     optimathsat_locals+=" -theory.la.dl_interpolation_mode=3"
     optimathsat_locals+=" -theory.la.dl_similarity_threshold=0.5"
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 2 1 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_2_dl_3_handler="${wcet_generic_handler}"
@@ -315,6 +415,15 @@ function wcet_optimathsat_2_cuts_dl_3_handler
     optimathsat_locals+=" -theory.la.dl_filter_tlemmas=False"
     optimathsat_locals+=" -theory.la.dl_interpolation_mode=3"
     optimathsat_locals+=" -theory.la.dl_similarity_threshold=0.5"
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}"
+    fi
     wcet_generic_handler "${1}" 2 0 "optimathsat" "${2}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_2_cuts_dl_3_handler="${wcet_generic_handler}"

@@ -552,6 +552,8 @@ function wcet_parse_output ()
 #       ${1}        -- full path to the benchmark directory
 #       ${2}        -- full path to the statistics directory
 #       ${3}        -- if != 0, then attempt unroll of all formulas
+#       ${4}        -- if != 0, run benchmark up to ${4} times using
+#                       a list of predefined random seeds
 #       [...]       -- keywords `{*}`, where `{*}` is the id
 #                      of a handler with name `wcet_{*}_handler`
 #
@@ -564,7 +566,7 @@ function wcet_run_experiment ()
 
     set -- "$(realpath "${1}")" "$(realpath "${2}")" "${@:3}"
 
-    for test_conf in "${@:4}"
+    for test_conf in "${@:5}"
     do
         find "${2}/${test_conf}" -name "*.txt" -type f -delete &>/dev/null
     done
@@ -580,14 +582,14 @@ function wcet_run_experiment ()
         [[ "${file}" =~ \.opt\.bc$ ]] && continue;
         [[ "${file}" =~ \.unr\.bc$ ]] && continue;
 
-        for test_conf in "${@:4}"
+        for test_conf in "${@:5}"
         do
             local dest_dir= ;
             dest_dir="${2}/${test_conf}"
 
             wcet_replicate_dirtree "${1}" "${dest_dir}" "${file}" || return "${?}"
 
-            wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}" "${3}"
+            wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}" "${3}" "${4}"
         done
     done < <(find "${1}" -name "*.bc" )
 }
@@ -681,6 +683,8 @@ function wcet_replicate_dirtree ()
 #       ${3}        -- full path to benchmark file under statistics folder tree
 #                      stripped of its extension
 #       ${4}        -- if != 0, then attempt unroll of all formulas
+#       ${5}        -- if != 0, run benchmark up to ${5} times using
+#                       a list of predefined random seeds
 #       return ${wcet_handle_file}
 #                   -- full path to the file in which benchmark data has been logged
 #
@@ -720,28 +724,84 @@ function wcet_handle_file ()
     #   - should generate omt formula of the right encoding
     #   - should run the right omt solver
     #   - should save in ${func_name} the formatted string with collected data
-    eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\"" || \
-        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
+    if (( "${5}" > 0 )) && [[ ${func_name} =~ "optimathsat" ]]; then
+        for (( i = 1; i <= "${5}"; i++ ));
+        do
+            local seed;
+            wcet_get_random_seed "${i}"
+            seed="${wcet_get_random_seed}"
+            eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\" \"${seed}\"" || \
+                { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
 
-    # 4. store data
-    stats_file="${1}/$(basename "${1}").txt"
-    [ -n "${!func_name}" ] || \
-        { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
-    echo "${!func_name}" >> "${stats_file}"
+            # 4. store data
+            stats_file="${1}/$(basename "${1}").txt"
+            [ -n "${!func_name}" ] || \
+                { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
+            echo "${!func_name}" >> "${stats_file}"
 
-    # 5. log test
-    stat_max="$(echo "${!func_name}"  | cut -d\| -f 2 | sed 's/ //g')"
-    stat_opt="$(echo "${!func_name}"  | cut -d\| -f 3 | sed 's/ //g')"
-    stat_gain="$(echo "${!func_name}" | cut -d\| -f 4 | sed 's/ //g')"
-    stat_time="$(echo "${!func_name}" | cut -d\| -f 6 | sed 's/ //g')"
-    stat_ref="$(basename "${2%.*}")"
-    prefix="${BLUE}$(basename "${1%.*}")(${NORMAL}${stat_ref}${BLUE}) ${NORMAL}"
-    suffix="-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}, time: ${BLUE}${stat_time}s${NORMAL}"
-    log_str="$(printf "%-80s %s" "${prefix}" "${suffix}")"
-    log "${log_str}"
+            # 5. log test
+            stat_max="$(echo "${!func_name}"  | cut -d\| -f 2 | sed 's/ //g')"
+            stat_opt="$(echo "${!func_name}"  | cut -d\| -f 3 | sed 's/ //g')"
+            stat_gain="$(echo "${!func_name}" | cut -d\| -f 4 | sed 's/ //g')"
+            stat_time="$(echo "${!func_name}" | cut -d\| -f 6 | sed 's/ //g')"
+            stat_ref="$(basename "${2%.*}")"
+            prefix="${BLUE}$(basename "${1%.*}")(${NORMAL}${stat_ref}${BLUE})${GREEN}[${i}]${NORMAL}"
+            suffix="-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}, time: ${BLUE}${stat_time}s${NORMAL}"
+            log_str="$(printf "%-80s %s" "${prefix}" "${suffix}")"
+            log "${log_str}"
+
+        done
+    else
+        eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\" \"0\"" || \
+            { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
+
+        # 4. store data
+        stats_file="${1}/$(basename "${1}").txt"
+        [ -n "${!func_name}" ] || \
+            { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
+        echo "${!func_name}" >> "${stats_file}"
+
+        # 5. log test
+        stat_max="$(echo "${!func_name}"  | cut -d\| -f 2 | sed 's/ //g')"
+        stat_opt="$(echo "${!func_name}"  | cut -d\| -f 3 | sed 's/ //g')"
+        stat_gain="$(echo "${!func_name}" | cut -d\| -f 4 | sed 's/ //g')"
+        stat_time="$(echo "${!func_name}" | cut -d\| -f 6 | sed 's/ //g')"
+        stat_ref="$(basename "${2%.*}")"
+        prefix="${BLUE}$(basename "${1%.*}")(${NORMAL}${stat_ref}${BLUE}) ${NORMAL}"
+        suffix="-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}, time: ${BLUE}${stat_time}s${NORMAL}"
+        log_str="$(printf "%-80s %s" "${prefix}" "${suffix}")"
+        log "${log_str}"
+
+    fi
 
     wcet_handle_file="${stats_file}"
     return 0
+}
+
+function wcet_get_random_seed()
+{
+    wcet_get_random_seed=
+    local seeds;
+
+    seeds=(295944 747800 251719 416724 986191 524023 659350 417976 728453 989277 \
+           487064 187480 813675 813938 957206 100406 103202 898254 870635 661602 \
+           221180 735776 497505 68774 194275 137285 522184 354435 918033 664288 \
+           265297 10333 84507 903311 298180 863211 226353 93624 633398 39776 490968 \
+           324402 100489 460795 470882 339228 339997 111254 367282 640592 725692 \
+           987185 666616 622621 380950 199817 583108 543673 340320 728114 403325 \
+           166400 137374 375918 184736 82396 910950 850339 935457 178242 796702 \
+           147750 83096 778710 940396 965359 37983 767669 489708 195458 289191 \
+           104827 472548 302289 650035 654589 725412 288610 937962 256563 789682 \
+           291732 141492 1636 136468 344591 826705 996505 510405 943737)
+
+    (( "${1}" < "${#seeds[@]}" )) || \
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "the maximum index is ${#seeds[@]}" "${?}"; return "${?}"; };
+
+    (( 0 <= "${1}" )) || \
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "the minimum index is 0" "${?}"; return "${?}"; };
+
+
+    wcet_get_random_seed="${seeds[${1}]}"
 }
 
 # wcet_test_handler:
