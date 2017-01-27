@@ -77,6 +77,9 @@ def collect_stats(file, tools, results):
         quit(1)
 
 def collapse_stats(tools, results):
+    """when omt tools are run multiple times with a different random seed, it collapses
+    the collected data by merging those results that refer to the same benchmark together
+    and computing useful statistics over it"""
     ret_results = {}
     ret_tools = []
     to_fix = {}
