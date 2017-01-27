@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, argparse, errno
+import os, sys, argparse, errno, math
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,7 +23,11 @@ def main():
     if opts.d is not None:
         mkdir_p(opts.d)
 
-    plot_bars(opts.d, opts.n, tools, results, opts.t)
+    for bench in results.keys():
+        small_results = {}
+        small_results[bench] = results[bench]
+        name = opts.n + "_" + bench
+        plot_bars(opts.d, name, tools, small_results, opts.t)
     
 ###
 ### help functions
@@ -55,7 +59,7 @@ def collect_stats(file, tools, results):
                     max_path, opt_value, gain, num_cuts, \
                     real_time, status, timeout, errors, \
                     llvm_size, num_blocks, smt2_file, \
-                    out_file = ''.join(line.split()).split("|")
+                    out_file = ''.join(line.split()).split("|")[1:-1]
 
                     bench, ext = os.path.splitext(os.path.basename(out_file))
 
@@ -68,17 +72,20 @@ def collect_stats(file, tools, results):
 
     except Exception as e:
         print("error: file `" + file + "` does not exist or cannot be read, quitting.\n")
+        print e
         quit(1)
 
 def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     """ plots given benchmark data """
-    fig, ax = plt.subplots()
+    #fig, ax = plt.subplots()
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
 
     # config
 
     axis_font = {'fontname' : 'Arial', 'size':'21', 'weight':'bold'}
-    colors    = ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w')
-    width     = 0.30
+    colors    = ('b', 'g', 'r', 'c', 'm', 'y', 'k') #, 'w')
+    width     = 0.25
     num_bench = len(benchmarks.keys())
     l_space   = 0.10
 
@@ -90,10 +97,17 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     position = np.arange(num_bench) + l_space
     idx = 0
     for tool in tools:
-        x_vals = map(lambda bench: benchmarks[bench][tool] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-        bar = ax.bar(position + width * idx, x_vals, width, color=colors[idx])
-        x_bars.append(bar)
-        idx += 1
+        if "cuts" not in tool:
+            x_vals = map(lambda bench: benchmarks[bench][tool] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+            bar = ax.bar(position + (width + l_space) * idx, x_vals, width, color=colors[idx % len(colors)], label=tool)
+            x_bars.append(bar)
+            idx += 1
+    for tool in tools:
+        if "cuts" in tool:
+            x_vals = map(lambda bench: benchmarks[bench][tool] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+            bar = ax.bar(position + (width + l_space) * idx, x_vals, width, color=colors[idx % len(colors)], label=tool)
+            x_bars.append(bar)
+            idx += 1
 
     # axis config
 
@@ -102,17 +116,23 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
 
     ax.set_ylabel('time (s.)')
     ax.set_yscale('log', nonposy='clip')
+    y_ticks = get_ticks(timeout)
+    plt.ylim([0, timeout * 1.5])
+    ax.set_yticks(y_ticks)
+    ax.get_yaxis().get_major_formatter().labelOnlyBase = False
 
-    ax.set_xticks(position + (width * idx) / 2)
+    ax.set_xticks(position + ((width + l_space) * idx) / 2)
     ax.set_xticklabels(x_labels)
 
     # legend
 
     x_bars_0s = map(lambda x: x[0], x_bars)
-    ax.legend(x_bars_0s, tools)
+#    ax.legend(x_bars_0s, tools)
 
     for bar in x_bars:
         autolabel(ax, bar, timeout)
+
+    lgd = plt.legend(loc=5, ncol=2, bbox_to_anchor=(1, -0.3))
 
     # timeout
     plt.axhline(y=timeout, color='r', zorder=3, linestyle='dashed')
@@ -120,7 +140,7 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     # save, show
     if plots_dir is not None:
         file_name = "%s/%s.png" % (plots_dir, title)
-        plt.savefig(file_name, bbox_inches=0)
+        plt.savefig(file_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     plt.show()
     plt.close(fig)
@@ -131,14 +151,28 @@ def autolabel(ax, rects, timeout):
         height = rect.get_height()
         y = rect.get_y()
         if y >= 0:
-            ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
-                '%d' % int(height),
-                ha='center', va='bottom')
+            if height >= timeout:
+                ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+                    'TO',
+                    ha='center', va='bottom')
+            else:
+                ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+                    '%.2f' % float(height),
+                    ha='center', va='bottom')
         else:
             height = timeout
             ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
                 '-/-',
                 ha='center', va='bottom')
+
+def get_ticks(timeout):
+    x = []
+    idx = 0
+    max = int(math.log(timeout, 10))
+    while (idx <= max):
+        x.append(math.pow(10, idx))
+        idx += 1
+    return x
 
 def mkdir_p(path):
     """make a directory and any missing ancestor if needed"""
