@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, argparse, errno, math
+import os, sys, argparse, errno, math, re, copy
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,11 +23,12 @@ def main():
     if opts.d is not None:
         mkdir_p(opts.d)
 
-    for bench in results.keys():
+    c_tools, c_results = collapse_stats(tools, results)
+    for bench in c_results.keys():
         small_results = {}
-        small_results[bench] = results[bench]
+        small_results[bench] = c_results[bench]
         name = opts.n + "_" + bench
-        plot_bars(opts.d, name, tools, small_results, opts.t)
+        plot_bars(opts.d, name, c_tools, small_results, opts.t)
     
 ###
 ### help functions
@@ -66,7 +67,7 @@ def collect_stats(file, tools, results):
                     if bench not in results.keys():
                         results[bench] = {}
 
-                    results[bench][tool] = real_time
+                    results[bench][tool] = (float(real_time), 0, 0, 0)
 
                 idx += 1
 
@@ -74,6 +75,53 @@ def collect_stats(file, tools, results):
         print("error: file `" + file + "` does not exist or cannot be read, quitting.\n")
         print e
         quit(1)
+
+def collapse_stats(tools, results):
+    ret_results = {}
+    ret_tools = []
+    to_fix = {}
+
+    pattern = re.compile("seed_([0-9]+)_(.*)")
+
+    # collect data
+    for key in results.keys():
+        res = pattern.match(key)
+        if res is None:
+            ret_results[key] = results[key]
+            for tool in results[key].keys():
+                if tool not in ret_tools:
+                    ret_tools.append(tool)
+        else:
+            seed  = res.group(1)
+            bench = res.group(2)
+
+            if bench not in to_fix.keys():
+                to_fix[bench] = {}
+
+            for tool in results[key].keys():
+                if float(results[key][tool][0]) <= 0:
+                    continue
+                if tool not in to_fix[bench].keys():
+                    to_fix[bench][tool] = []
+                to_fix[bench][tool].append(float(results[key][tool][0]))
+
+    # Compute Average
+    for bench in to_fix.keys():
+        if bench not in ret_results.keys():
+            ret_results[bench] = {}
+        for tool in to_fix[bench].keys():
+            num_datapoints = len(to_fix[bench][tool])
+            tool_name = tool + "_avg" + str(num_datapoints)
+            if tool_name not in ret_tools:
+                ret_tools.append(tool_name)
+            values = to_fix[bench][tool]
+            avg    = sum(values) / num_datapoints
+            stddev = np.std(values)
+            med    = np.median(values)
+            perc   = np.percentile(map(float, values), 90)
+            ret_results[bench][tool_name] = (avg, stddev, med, perc, 0)
+
+    return ret_tools, ret_results
 
 def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     """ plots given benchmark data """
@@ -84,7 +132,7 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     # config
 
     axis_font = {'fontname' : 'Arial', 'size':'21', 'weight':'bold'}
-    colors    = ('b', 'g', 'r', 'c', 'm', 'y', 'k') #, 'w')
+    colors    = ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w')
     width     = 0.25
     num_bench = len(benchmarks.keys())
     l_space   = 0.10
@@ -98,14 +146,36 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     idx = 0
     for tool in tools:
         if "cuts" not in tool:
-            x_vals = map(lambda bench: benchmarks[bench][tool] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-            bar = ax.bar(position + (width + l_space) * idx, x_vals, width, color=colors[idx % len(colors)], label=tool)
+            y_vals = map(lambda bench: benchmarks[bench][tool][0] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+            stddev = map(lambda bench: benchmarks[bench][tool][1] if tool in benchmarks[bench].keys() else 0, benchmarks.keys())
+            med    = map(lambda bench: benchmarks[bench][tool][2] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+            perc   = map(lambda bench: benchmarks[bench][tool][3] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+            if "avg" in tool:
+                bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool, yerr=stddev, ecolor='r')
+                ax.scatter(position + (width + l_space) * idx + width/2, med, color='k', zorder=3, marker='x')
+                for pv in perc:
+                    min = position + (width + l_space) * idx
+                    max = position + (width + l_space) * idx + width
+                    ax.hlines(pv, min, max, color='r', zorder=2)
+            else:
+                bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool)
             x_bars.append(bar)
             idx += 1
     for tool in tools:
         if "cuts" in tool:
-            x_vals = map(lambda bench: benchmarks[bench][tool] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-            bar = ax.bar(position + (width + l_space) * idx, x_vals, width, color=colors[idx % len(colors)], label=tool)
+            y_vals = map(lambda bench: benchmarks[bench][tool][0] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+            stddev = map(lambda bench: benchmarks[bench][tool][1] if tool in benchmarks[bench].keys() else 0, benchmarks.keys())
+            med    = map(lambda bench: benchmarks[bench][tool][2] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+            perc   = map(lambda bench: benchmarks[bench][tool][3] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+            if "avg" in tool:
+                bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool, yerr=stddev, ecolor='r')
+                ax.scatter(position + (width + l_space) * idx + width/2, med, color='k', zorder=3, marker='x')
+                for pv in perc:
+                    min = position + (width + l_space) * idx
+                    max = position + (width + l_space) * idx + width
+                    ax.hlines(pv, min, max, color='r', zorder=2)
+            else:
+                bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool)
             x_bars.append(bar)
             idx += 1
 
@@ -135,14 +205,14 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     lgd = plt.legend(loc=5, ncol=2, bbox_to_anchor=(1, -0.3))
 
     # timeout
-    plt.axhline(y=timeout, color='r', zorder=3, linestyle='dashed')
+    plt.axhline(y=timeout, color='r', zorder=4, linestyle='dashed')
 
     # save, show
     if plots_dir is not None:
         file_name = "%s/%s.png" % (plots_dir, title)
         plt.savefig(file_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
-    plt.show()
+#    plt.show()
     plt.close(fig)
 
 def autolabel(ax, rects, timeout):
@@ -152,18 +222,18 @@ def autolabel(ax, rects, timeout):
         y = rect.get_y()
         if y >= 0:
             if height >= timeout:
-                ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+                ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.05,
                     'TO',
-                    ha='center', va='bottom')
+                    ha='center', va='bottom', zorder=5)
             else:
-                ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+                ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.05,
                     '%.2f' % float(height),
-                    ha='center', va='bottom')
+                    ha='center', va='bottom', zorder=5)
         else:
             height = timeout
-            ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+            ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.05,
                 '-/-',
-                ha='center', va='bottom')
+                ha='center', va='bottom', zorder=5)
 
 def get_ticks(timeout):
     x = []
