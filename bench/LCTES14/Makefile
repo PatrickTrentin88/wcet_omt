@@ -18,17 +18,17 @@ WCET_REPEAT     ?= 10							# 0 : execute each handler once with default configu
 												#		from a fixed list
 
 ###                                           ###
+### include recipes from Master Makefile      ###
+###                                           ###
+
+include ../../Makefile.master
+
+###                                           ###
 ### resource location                         ###
 ###                                           ###
 
 WCET_BENCH_DIR	:= $(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 WCET_STATS_DIR	:= $(subst $(WCET_OMT_DIR),$(WCET_OMT_DIR)/stats,$(WCET_BENCH_DIR))
-
-###                                           ###
-### include recipes from Master Makefile      ###
-###                                           ###
-
-include ../../Makefile.master
 
 ###                                           ###
 ### user customizable rules                   ###
