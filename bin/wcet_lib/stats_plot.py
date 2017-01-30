@@ -144,41 +144,16 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
 
     x_labels = benchmarks.keys()
     x_bars   = []
-    x_vals   = []
     position = np.arange(num_bench) + l_space
     idx = 0
     for tool in tools:
         if "cuts" not in tool:
-            y_vals = map(lambda bench: benchmarks[bench][tool][0] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-            stddev = map(lambda bench: benchmarks[bench][tool][1] if tool in benchmarks[bench].keys() else 0, benchmarks.keys())
-            med    = map(lambda bench: benchmarks[bench][tool][2] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-            perc   = map(lambda bench: benchmarks[bench][tool][3] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-            if "avg" in tool:
-                bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool, yerr=stddev, ecolor='r')
-                ax.scatter(position + (width + l_space) * idx + width/2, med, color='k', zorder=3, marker='x')
-                for pv in perc:
-                    min = position + (width + l_space) * idx
-                    max = position + (width + l_space) * idx + width
-                    ax.hlines(pv, min, max, color='r', zorder=2)
-            else:
-                bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool)
+            bar = _plot_bar(ax, benchmarks, position, width, l_space, idx, colors, bench, tool)
             x_bars.append(bar)
             idx += 1
     for tool in tools:
         if "cuts" in tool:
-            y_vals = map(lambda bench: benchmarks[bench][tool][0] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-            stddev = map(lambda bench: benchmarks[bench][tool][1] if tool in benchmarks[bench].keys() else 0, benchmarks.keys())
-            med    = map(lambda bench: benchmarks[bench][tool][2] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-            perc   = map(lambda bench: benchmarks[bench][tool][3] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-            if "avg" in tool:
-                bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool, yerr=stddev, ecolor='r')
-                ax.scatter(position + (width + l_space) * idx + width/2, med, color='k', zorder=3, marker='x')
-                for pv in perc:
-                    min = position + (width + l_space) * idx
-                    max = position + (width + l_space) * idx + width
-                    ax.hlines(pv, min, max, color='r', zorder=2)
-            else:
-                bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool)
+            bar = _plot_bar(ax, benchmarks, position, width, l_space, idx, colors, bench, tool)
             x_bars.append(bar)
             idx += 1
 
@@ -217,6 +192,22 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
 
 #    plt.show()
     plt.close(fig)
+
+def _plot_bar(ax, benchmarks, position, width, l_space, idx, colors, bench, tool):
+    y_vals = map(lambda bench: benchmarks[bench][tool][0] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+    stddev = map(lambda bench: benchmarks[bench][tool][1] if tool in benchmarks[bench].keys() else 0, benchmarks.keys())
+    med    = map(lambda bench: benchmarks[bench][tool][2] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+    perc   = map(lambda bench: benchmarks[bench][tool][3] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
+    if "avg" in tool:
+        bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool, yerr=stddev, ecolor='r')
+        ax.scatter(position + (width + l_space) * idx + width/2, med, color='k', zorder=3, marker='x')
+        for pv in perc:
+            min = position + (width + l_space) * idx
+            max = position + (width + l_space) * idx + width
+            ax.hlines(pv, min, max, color='r', zorder=2)
+        else:
+            bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool)
+    return bar
 
 def autolabel(ax, rects, timeout):
     """prints numeric value on top of each rect, '-/-' is used for missing data points"""
