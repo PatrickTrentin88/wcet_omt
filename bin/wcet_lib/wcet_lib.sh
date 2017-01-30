@@ -733,49 +733,53 @@ function wcet_handle_file ()
             eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\" \"${seed}\"" || \
                 { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
 
-            # 4. store data
-            stats_file="${1}/$(basename "${1}").txt"
-            [ -n "${!func_name}" ] || \
-                { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
-            echo "${!func_name}" >> "${stats_file}"
-
-            # 5. log test
-            stat_max="$(echo "${!func_name}"  | cut -d\| -f 2 | sed 's/ //g')"
-            stat_opt="$(echo "${!func_name}"  | cut -d\| -f 3 | sed 's/ //g')"
-            stat_gain="$(echo "${!func_name}" | cut -d\| -f 4 | sed 's/ //g')"
-            stat_time="$(echo "${!func_name}" | cut -d\| -f 6 | sed 's/ //g')"
-            stat_ref="$(basename "${2%.*}")"
-            prefix="${BLUE}$(basename "${1%.*}")(${NORMAL}${stat_ref}${BLUE})${GREEN}[${i}]${NORMAL}"
-            suffix="-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}, time: ${BLUE}${stat_time}s${NORMAL}"
-            log_str="$(printf "%-80s %s" "${prefix}" "${suffix}")"
-            log "${log_str}"
-
+            # 4-5. statistics
+            wcet_store_statistics "${1}" "${2}" "${func_name}"
         done
     else
         eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\" \"0\"" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
 
-        # 4. store data
-        stats_file="${1}/$(basename "${1}").txt"
-        [ -n "${!func_name}" ] || \
-            { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}(${1})> empty result"; return 0; };
-        echo "${!func_name}" >> "${stats_file}"
-
-        # 5. log test
-        stat_max="$(echo "${!func_name}"  | cut -d\| -f 2 | sed 's/ //g')"
-        stat_opt="$(echo "${!func_name}"  | cut -d\| -f 3 | sed 's/ //g')"
-        stat_gain="$(echo "${!func_name}" | cut -d\| -f 4 | sed 's/ //g')"
-        stat_time="$(echo "${!func_name}" | cut -d\| -f 6 | sed 's/ //g')"
-        stat_ref="$(basename "${2%.*}")"
-        prefix="${BLUE}$(basename "${1%.*}")(${NORMAL}${stat_ref}${BLUE}) ${NORMAL}"
-        suffix="-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}, time: ${BLUE}${stat_time}s${NORMAL}"
-        log_str="$(printf "%-80s %s" "${prefix}" "${suffix}")"
-        log "${log_str}"
-
+        # 4-5. statistics
+        wcet_store_statistics "${1}" "${2}" "${func_name}"
     fi
 
-    wcet_handle_file="${stats_file}"
+    wcet_handle_file="${wcet_store_statistics}"
     return 0
+}
+
+# wcet_store_statistics:
+#   extrapolates search statistics from raw data and logs them on stdout and
+#   a separate log file
+#       ${1}        -- full path to statistics directory for a given configuration
+#       ${2}        -- full path to the benchmark file
+#       ${3}        -- function handler name
+#       return ${wcet_handle_file}
+#                   -- full path to the file in which benchmark data has been logged
+#
+# shellcheck disable=SC2034
+function wcet_store_statistics()
+{
+    wcet_store_statistics=
+
+    # 4. store data
+    stats_file="${1}/$(basename "${1}").txt"
+    [ -n "${!3}" ] || \
+        { warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${3}(${1})> empty result"; return 0; };
+    echo "${!3}" >> "${stats_file}"
+
+    # 5. log test
+    stat_max="$(echo "${!3}"  | cut -d\| -f 2 | sed 's/ //g')"
+    stat_opt="$(echo "${!3}"  | cut -d\| -f 3 | sed 's/ //g')"
+    stat_gain="$(echo "${!3}" | cut -d\| -f 4 | sed 's/ //g')"
+    stat_time="$(echo "${!3}" | cut -d\| -f 6 | sed 's/ //g')"
+    stat_ref="$(basename "${2%.*}")"
+    prefix="${BLUE}$(basename "${1%.*}")(${NORMAL}${stat_ref}${BLUE}) ${NORMAL}"
+    suffix="-- max: ${RED}${stat_max}${NORMAL}, opt: ${BLUE}${stat_opt}${NORMAL}, gain: ${GREEN}${stat_gain} %${NORMAL}, time: ${BLUE}${stat_time}s${NORMAL}"
+    log_str="$(printf "%-80s %s" "${prefix}" "${suffix}")"
+    log "${log_str}"
+
+    wcet_store_statistics="${stats_file}"
 }
 
 function wcet_get_random_seed()
