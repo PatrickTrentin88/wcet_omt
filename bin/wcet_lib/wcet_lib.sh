@@ -501,8 +501,11 @@ function wcet_parse_output ()
     is_sat="$(grep -Eci -m 1 "(^sat$|The maximum value of)" "${2}")"
     (( is_unknown )) && is_sat=$((0)) # optimathsat prints sat for partially optimized problems
 
+    (( ( is_unknown + is_unsat + is_sat ) == 0 )) && \
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "no search status found, see <${2}>"; return 1; };
+
     (( ( is_unknown + is_unsat + is_sat ) == 1 )) || \
-        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "parsed multiple search statuses, see <${2}>"; return 1; };
+        { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" "multiple search status found, see <${2}>"; return 1; };
 
     (( is_unknown )) && args["status"]="unknown"
     (( is_unsat ))   && args["status"]="unsat"
