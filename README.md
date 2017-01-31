@@ -109,7 +109,7 @@ The scripts are designed to print any **error** that might be encountered. Howev
 output nice and clean, relevant debugging information is hidden by default. To enable it, type:
 
      ~$ pushd bench/test
-     ~$ export DEBUG=1
+     ~$ export WCET_DEBUG=1
      ~$ make all
      ~$ popd
 
@@ -119,7 +119,7 @@ Loops are not supported and need to be unrolled. By default, loops in the byteco
 optimized out. To enable this feature, type:
 
      ~$ pushd bench/test
-     ~$ export UNROLL=1
+     ~$ export WCET_UNROLL=1
      ~$ make all
      ~$ popd
 
