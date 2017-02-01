@@ -67,6 +67,10 @@ def collect_stats(file, tools, results):
                     if bench not in results.keys():
                         results[bench] = {}
 
+                    # NOTE: required by log-scale, more realistic than 0.0
+                    if (float(real_time) <= 0.0):
+                        real_time = float(real_time) + 0.001
+
                     results[bench][tool] = (float(real_time), 0, 0, 0)
 
                 idx += 1
@@ -163,10 +167,7 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     ax.set_title(title)
 
     ax.set_ylabel('time (s.)')
-    try:
-        ax.set_yscale('log', nonposy='clip')
-    except:
-        pass
+    ax.set_yscale('log', nonposy='clip')
     y_ticks = get_ticks(timeout)
     plt.ylim([0, timeout * 1.5])
     ax.set_yticks(y_ticks)
@@ -201,15 +202,15 @@ def _plot_bar(ax, benchmarks, position, width, l_space, idx, colors, tool):
     stddev = map(lambda bench: benchmarks[bench][tool][1] if tool in benchmarks[bench].keys() else 0, benchmarks.keys())
     med    = map(lambda bench: benchmarks[bench][tool][2] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
     perc   = map(lambda bench: benchmarks[bench][tool][3] if tool in benchmarks[bench].keys() else -10, benchmarks.keys())
-    bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool, yerr=stddev, ecolor='r')
     if "avg" in tool:
+        bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool, yerr=stddev, ecolor='r')
         ax.scatter(position + (width + l_space) * idx + width/2, med, color='k', zorder=3, marker='x')
         for pv in perc:
             min = position + (width + l_space) * idx
             max = position + (width + l_space) * idx + width
             ax.hlines(pv, min, max, color='r', zorder=2)
-        else:
-            bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool)
+    else:
+        bar = ax.bar(position + (width + l_space) * idx, y_vals, width, color=colors[idx % len(colors)], label=tool)
     return bar
 
 def autolabel(ax, rects, timeout):
@@ -219,16 +220,16 @@ def autolabel(ax, rects, timeout):
         y = rect.get_y()
         if y >= 0:
             if height >= timeout:
-                ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.05,
+                ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.1,
                     'TO',
                     ha='center', va='bottom', zorder=5)
             else:
-                ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.05,
+                ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.1,
                     '%.2f' % float(height),
                     ha='center', va='bottom', zorder=5)
         else:
             height = timeout
-            ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.05,
+            ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.1,
                 '-/-',
                 ha='center', va='bottom', zorder=5)
 
