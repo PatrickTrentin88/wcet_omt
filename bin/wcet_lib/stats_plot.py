@@ -29,7 +29,11 @@ def main():
         small_results[bench] = c_results[bench]
         name = opts.n + "_" + bench
         plot_bars(opts.d, name, c_tools, small_results, opts.t)
-    
+
+    cs_results = cactus_stats(c_tools, c_results, opts.t)
+
+    plot_scatter(opts.d, opts.n + "_scatter", cs_results)
+
 ###
 ### help functions
 ###
@@ -241,6 +245,87 @@ def get_ticks(timeout):
         x.append(math.pow(10, idx))
         idx += 1
     return x
+
+def cactus_stats(tools, results, timeout):
+    """re-arrange the data for cactus plot"""
+    ret_results = {}
+
+    for bench in results.keys():
+        for tool in results[bench].keys():
+            if tool not in ret_results.keys():
+                ret_results[tool] = []
+            if float(results[bench][tool][0]) <= float(timeout):
+                ret_results[tool].append(float(results[bench][tool][0]))
+
+    for tool in ret_results.keys():
+        ret_results[tool].sort()
+        for idx in range(1, len(ret_results[tool])):
+            ret_results[tool][idx] = ret_results[tool][idx] + ret_results[tool][idx - 1]
+
+    return ret_results
+
+def plot_scatter(plots_dir, title, data):
+    """ plots given benchmark data """
+    #fig, ax = plt.subplots()
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+
+    # config
+
+    axis_font = {'fontname' : 'Arial', 'size':'21', 'weight':'bold'}
+    colors    = ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w')
+    styles    = ['--', '-.', '-', ':']
+
+    # sort data appropriately
+    dbkeys = {}
+    mvalue = 0
+    for key in data.keys():
+        newkey = len(data[key])
+        if newkey not in dbkeys.keys():
+            dbkeys[newkey] = { data[key][-1] : [key] }
+        else:
+            if data[key][-1] not in dbkeys[newkey].keys():
+                dbkeys[newkey][data[key][-1]] = [key]
+            else:
+                dbkeys[newkey][data[key][-1]].append(key)
+        mvalue = mvalue if mvalue > data[key][-1] else data[key][-1]
+
+    # plot
+    l1_keys = dbkeys.keys()
+    l1_keys.sort()
+    idx = 0
+    for l1_key in l1_keys:
+        l2_keys = dbkeys[l1_key].keys()
+        l2_keys.sort()
+        for l2_key in l2_keys:
+            for tool in dbkeys[l1_key][l2_key]:
+                y = data[tool]
+                x = np.arange(1, len(y) + 1)
+                ax.plot(x, y, styles[idx % len(styles)], label=tool, marker=None, color=colors[idx % len(styles)])
+                idx += 1
+
+    # axis config
+
+    ax.grid(True)
+    ax.set_title("# benchmarks")
+    ax.set_ylabel('time (s.)')
+    ax.set_yscale('log', nonposy='clip')
+    y_ticks = get_ticks(mvalue)
+    plt.ylim([0, mvalue * 1.5])
+    ax.set_yticks(y_ticks)
+    ax.get_yaxis().get_major_formatter().labelOnlyBase = False
+
+    # legend
+
+    lgd = plt.legend(loc=5, ncol=2, bbox_to_anchor=(1, -0.2))
+
+    # save, show
+    if plots_dir is not None:
+        file_name = "%s/%s.png" % (plots_dir, title)
+        plt.savefig(file_name, bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+#    plt.show()
+    plt.close(fig)
 
 def mkdir_p(path):
     """make a directory and any missing ancestor if needed"""
