@@ -143,8 +143,8 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     # config
 
     axis_font = {'fontname' : 'Arial', 'size':'21', 'weight':'bold'}
-    colors    = ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w')
-    width     = 0.25
+    colors    = ('b', 'g', 'r', 'c', 'm', 'y', 'k')#, 'w')
+    width     = 0.35
     num_bench = len(benchmarks.keys())
     l_space   = 0.10
 
@@ -154,6 +154,7 @@ def plot_bars(plots_dir, title, tools, benchmarks, timeout):
     x_bars   = []
     position = np.arange(num_bench) + l_space
     idx = 0
+    tools.sort()
     for tool in tools:
         if "cuts" not in tool:
             bar = _plot_bar(ax, benchmarks, position, width, l_space, idx, colors, tool)
@@ -219,6 +220,7 @@ def _plot_bar(ax, benchmarks, position, width, l_space, idx, colors, tool):
 
 def autolabel(ax, rects, timeout):
     """prints numeric value on top of each rect, '-/-' is used for missing data points"""
+    font = {'fontname' : 'Arial', 'size':'7'}
     for rect in rects:
         height = rect.get_height()
         y = rect.get_y()
@@ -226,16 +228,16 @@ def autolabel(ax, rects, timeout):
             if height >= timeout:
                 ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.1,
                     'TO',
-                    ha='center', va='bottom', zorder=5)
+                    ha='center', va='bottom', zorder=5, **font)
             else:
                 ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.1,
                     '%.2f' % float(height),
-                    ha='center', va='bottom', zorder=5)
+                    ha='center', va='bottom', zorder=5, **font)
         else:
             height = timeout
             ax.text(rect.get_x() + rect.get_width()/2., timeout * 1.1,
                 '-/-',
-                ha='center', va='bottom', zorder=5)
+                ha='center', va='bottom', zorder=5, **font)
 
 def get_ticks(timeout):
     x = []
@@ -274,6 +276,9 @@ def plot_scatter(plots_dir, title, data):
 
     axis_font = {'fontname' : 'Arial', 'size':'21', 'weight':'bold'}
     colors    = ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w')
+    number = len(data.keys())
+    cmap = plt.get_cmap('Dark2_r')
+    colors = [cmap(i) for i in np.linspace(0, 1, number)]
     styles    = ['--', '-.', '-', ':']
 
     # sort data appropriately
@@ -301,7 +306,7 @@ def plot_scatter(plots_dir, title, data):
             for tool in dbkeys[l1_key][l2_key]:
                 y = data[tool]
                 x = np.arange(1, len(y) + 1)
-                ax.plot(x, y, styles[idx % len(styles)], label=tool, marker=None, color=colors[idx % len(styles)])
+                ax.plot(x, y, styles[idx % len(styles)], label=tool, marker=None, color=colors[idx % len(colors)], linewidth=2)
                 idx += 1
 
     # axis config
@@ -317,7 +322,7 @@ def plot_scatter(plots_dir, title, data):
 
     # legend
 
-    lgd = plt.legend(loc=5, ncol=2, bbox_to_anchor=(1, -0.2))
+    lgd = plt.legend(loc=5, ncol=2, bbox_to_anchor=(1, -0.3))
 
     # save, show
     if plots_dir is not None:
