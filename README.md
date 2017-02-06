@@ -9,10 +9,11 @@ This project aims to reproduce the results obtained in the paper
 
 We expand over [HAL-14] in the following way:
 - new and improved build-chain
-- updated original source code to be compatible with newer versions of z3's API library
+- new and improved benchmarking functionality with support for z3 and OptiMathSAT
+- minor fixes and general update to original `smtopt` source code for compatibility with newer z3's API
 - updated smt2 formula encoding to use Optimization Modulo Theory language extensions
 - added two additional formula encodings
-- benchmarking functionality
+- added default omt solver configurations for benchmarks
 
 The original work of [HAL-14] is made available within Pagai's sources, and
 is located in the path `pagai/WCET`.
