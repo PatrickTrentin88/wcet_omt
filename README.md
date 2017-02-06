@@ -76,7 +76,7 @@ To run a simple experiment, type
     ~$ popd
 
 Here, `optimathsat_0` and `optimathsat_2_dl_1` are compilation **targets**, scroll this
-file to get for more information.
+file for more information.
 
 As the experiment runs, the following *folder structure* is added to the file-system:
     
