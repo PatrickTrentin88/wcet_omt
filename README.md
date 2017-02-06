@@ -14,7 +14,8 @@ We expand over [HAL-14] in the following way:
 - added two additional formula encodings
 - benchmarking functionality
 
-The original work of [HAL-14] is made available within Pagai's sources.
+The original work of [HAL-14] is made available within Pagai's sources, and
+is located in the path `pagai/WCET`.
 
 
 ## LIMITATIONS
