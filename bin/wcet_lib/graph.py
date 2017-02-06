@@ -32,7 +32,7 @@ class SourceCodeGraph:
     def get_edge(self, uid):
         return self._edges[uid]
 
-    def parse_graph(self, graph_str):
+    def parse_graph(self, graph_str, use_bs=True):
         """parses a piece of string representing a source code graph (toolchain generated)
         into an instance of SourceCodeGraph"""
         blocks = graph_str.strip().split('BasicBlock ')
@@ -75,7 +75,7 @@ class SourceCodeGraph:
             else:
                 block_dominator = block_dominator.split('_')[1]
 
-            if block_var == self._start_var:
+            if block_var == self._start_var and use_bs:
                 block_var = block_var.replace("bd_", "bs_")
 
             b = Node(block_var, block_label, block_cost, block_dominator, self)

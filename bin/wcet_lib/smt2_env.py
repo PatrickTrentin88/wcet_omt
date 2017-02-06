@@ -69,6 +69,13 @@ class Environment:
         """adds a declaration (unchecked) to the environment."""
         self._declarations.append(decl)
 
+    def is_declared(self, var):
+        for decl in self._declarations:
+            idx = decl.index('()')
+            if var in decl[8:idx]:
+                return True
+        return False
+
     # assertions
 
     def assert_formulas(self, terms):

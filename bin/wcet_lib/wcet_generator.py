@@ -25,7 +25,7 @@ def main():
 
     # preload initial environment and graph
     env = preload_smt_env(smt_txt)
-    graph = preload_graph(graph_txt)
+    graph = preload_graph(graph_txt, env.is_declared('bs_0'))
 
     # Update costs with Matching File, if available
     if (opts.matchingfile):
@@ -120,11 +120,11 @@ def preload_smt_env(smt_formula):
     env.assert_formula(f)
     return env
 
-def preload_graph(graph_txt):
+def preload_graph(graph_txt, use_bs):
     """parses input source code graph generated with pagai, storing into a
     SourceCodeGraph instance, returned to the caller."""
     graph = SourceCodeGraph()
-    graph.parse_graph(graph_txt)
+    graph.parse_graph(graph_txt, use_bs)
     return graph
 
 ###
