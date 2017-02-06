@@ -27,7 +27,7 @@ using an outdated version of clang/llvm and from Pagai's implementation.
 Known issues:
 - Pagai running out of memory / stuck in loop
 - opt running out of memory when performing loop unrolling over some benchmarks
-- no support for bytecode with loops which have not been unrolled
+- no support for bytecode with loops which have not been unrolled (also in [HAL-14])
 
 
 ## REQUIREMENTS
