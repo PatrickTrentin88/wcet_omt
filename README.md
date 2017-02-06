@@ -22,7 +22,7 @@ is located in the path `pagai/WCET`.
 ## LIMITATIONS
 
 There are a number of inherent limitations in this work, some of which derive from
-using an outdated version of clang/llvm and from Pagai's implementation.
+using an outdated version of clang/llvm and (apparently) from Pagai's implementation.
 
 Known issues:
 - Pagai running out of memory / stuck in loop
