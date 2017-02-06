@@ -8,12 +8,11 @@ This project aims to reproduce the results obtained in the paper
     HAL-00998138 https://hal.archives-ouvertes.fr/hal-00998138
 
 We expand over [HAL-14] in the following way:
-
-    - new and improved build-chain
-    - updated original source code to be compatible with newer versions of z3's API library
-    - updated smt2 formula encoding to use Optimization Modulo Theory language extensions
-    - added two additional formula encodings
-    - benchmarking functionality
+- new and improved build-chain
+- updated original source code to be compatible with newer versions of z3's API library
+- updated smt2 formula encoding to use Optimization Modulo Theory language extensions
+- added two additional formula encodings
+- benchmarking functionality
 
 The original work of [HAL-14] is made available within Pagai's sources.
 
