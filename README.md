@@ -1,3 +1,28 @@
+## DESCRIPTION
+
+This project aims to reproduce the results obtained in the paper
+
+    [HAL-14]
+    How to Compute Worst-Case Execution Time by Optimization Modulo Theory and a Clever Encoding of Program Semantics
+    Julien Henry (VERIMAG - IMAG), Mihail Asavoae (VERIMAG - IMAG), David Monniaux (VERIMAG - IMAG), Claire Maïza (VERIMAG - IMAG)
+    HAL-00998138 https://hal.archives-ouvertes.fr/hal-00998138
+
+We expand over [HAL-14] in the following way:
+    - new and improved build-chain
+    - updated original source code to be compatible with newer versions of z3's API library
+    - updated smt2 formula encoding to use Optimization Modulo Theory language extensions
+    - added two additional formula encodings
+    - benchmarking functionality
+
+The original work of [HAL-14] is made available within Pagai's sources.
+
+
+## LIMITATIONS
+
+There are a number of inherent limitations in this work, some of which derive from
+using an outdated version of clang/llvm and from Pagai's implementation.
+
+
 ## REQUIREMENTS
 
 This project has been tested on *linux-gnu* only. In case support for another OS is needed, contact
