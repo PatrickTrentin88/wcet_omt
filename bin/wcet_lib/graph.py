@@ -94,10 +94,10 @@ class SourceCodeGraph:
                         self._edges[e.get_uid()] = e
 
         if self._end_var is None:
+            # single-block graph
             assert(len(self._nodes.keys()) <= 1)
             assert(len(self._edges.keys()) <= 0)
-            print(";; ERROR: graph has only one block.")
-            quit(1)
+            self._end_var = self._start_var
 
         # update start/end uids
         self._start_uid = self._label2uid[self._var2label[self._start_var]]
@@ -374,6 +374,10 @@ class SourceCodeGraph:
         subgraph_node_uids = [src_uid]
         dsp = 0
 
+        if (src_uid == dst_uid): # NOTE: deals with single-block graphs
+            node = self._nodes[src_uid]
+            return node.get_cost(), [src_uid], [], []
+
         # NOTE: the generated block graph might contain dead ends, thus
         # visited_uids must be pre-computed
         visited_uids = copy.deepcopy(self._nodes.keys())
@@ -510,6 +514,9 @@ class SourceCodeGraph:
         paths = {}
         idx = 0
         dsp = 0
+
+        if (src_uid == dst_uid): # NOTE: deals with single-block graphs
+            return [src_uid]
 
         # NOTE: the generated block graph might contain dead ends, thus
         # visited_uids must be pre-computed
