@@ -29,6 +29,7 @@ Known issues:
 - opt running out of memory when performing loop unrolling over some benchmarks
 - no support with bytecode with loops which have not been unrolled
 
+
 ## REQUIREMENTS
 
 This project has been tested on *linux-gnu* only. In case support for another OS is needed, contact
