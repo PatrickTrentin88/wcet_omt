@@ -24,6 +24,10 @@ is located in the path `pagai/WCET`.
 There are a number of inherent limitations in this work, some of which derive from
 using an outdated version of clang/llvm and from Pagai's implementation.
 
+Known issues:
+- Pagai running out of memory / stuck in loop
+- opt running out of memory when performing loop unrolling over some benchmarks
+- no support with bytecode with loops which have not been unrolled
 
 ## REQUIREMENTS
 
