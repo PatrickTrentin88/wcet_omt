@@ -16,16 +16,17 @@ We expand over [HAL-14] in the following way:
 - added default omt solver configurations for benchmarks
 
 The original work of [HAL-14] is made available within Pagai's sources, and
-is located in the path `pagai/WCET`.
+is located in the path `tools/pagai/WCET` after installation.
 
 
 ## LIMITATIONS
 
-There are a number of inherent limitations in this work, some of which derive from
-using an outdated version of clang/llvm and (apparently) from Pagai's implementation.
+There are a number of inherent limitations in this work, some of which are caused by
+the use of outdated version of libraries and tools (clang, llvm, z3) and others arising
+directly from Pagai.
 
 Known issues:
-- Pagai running out of memory / stuck in loop
+- Pagai running out of memory / stuck
 - opt running out of memory when performing loop unrolling over some benchmarks
 - no support for bytecode with loops which have not been unrolled (also in [HAL-14])
 
