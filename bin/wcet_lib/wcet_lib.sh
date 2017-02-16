@@ -79,8 +79,8 @@ function wcet_bytecode_optimization()
     [[ "${1}" =~ \.bc$ ]] && dst_file="${1:: -3}.opt.ll" || dst_file="${1}.opt.ll"
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
-        log_cmd "pagai -i \"${1}\" --dump-ll --wcet --loop-unroll > \"${dst_file}\""
-        pagai -i "${1}" --dump-ll --wcet --loop-unroll > "${dst_file}" || \
+        log_cmd "pagai -i \"${1}\" --dump-ll --wcet --loop-unroll -s z3_api > \"${dst_file}\""
+        pagai -i "${1}" --dump-ll --wcet --loop-unroll -s z3_api > "${dst_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
         # pagai does not set error status
@@ -151,13 +151,13 @@ function wcet_gen_blocks()
     (( ${#} == 2 )) && solver="${2}" || solver="z3";
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
-        pagai -i "${1}" --wcet --skipnonlinear --loop-unroll &>/dev/null # preliminary sig-sev test
+        pagai -i "${1}" --wcet --skipnonlinear --loop-unroll -s z3_api &>/dev/null # preliminary sig-sev test
         if (( "${?}" == 139 )); then
             warning "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 2))" "pagai segmentation fault with  <${1}>"; return 139;
         fi
 
-        log_cmd "pagai -i \"${1}\" --wcet --printformula --skipnonlinear --loop-unroll > \"${dst_file}\""
-        pagai -i "${1}" --wcet --printformula --skipnonlinear --loop-unroll > "${dst_file}" || \
+        log_cmd "pagai -i \"${1}\" --wcet --printformula --skipnonlinear --loop-unroll -s z3_api > \"${dst_file}\""
+        pagai -i "${1}" --wcet --printformula --skipnonlinear --loop-unroll -s z3_api > "${dst_file}" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "pagai error" "${?}"; return "${?}"; };
 
         # pagai does not set error status
@@ -251,6 +251,36 @@ function wcet_update_timeout ()
     else
         if grep -q "set-option :timeout" "${1}"; then
             sed -i 's/^ *\((set-option :timeout  *[0-9]*\.[0-9]*)\)//' "${1}"
+        else
+            :   # avoid unecessary overwrite
+        fi
+    fi
+    return 0;
+}
+
+# wcet_update_seed:
+#   performs an inline update of the timeout value in an OMT formula
+#       ${1}        -- full path to the OMT formula (ext: `.smt2`)
+#       [${2}]      -- new random seed value, `0` or missing value means
+#                       erase existing (if any) random seed in the formula
+#
+function wcet_update_seed ()
+{
+    is_readable_file "${1}" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+
+    [ -z "${2}" ] && set -- "${1}" "0"
+
+    if (( 0 < ${2} )); then
+        if grep -q "set-option :random-seed ${2}" "${1}"; then
+            :   # avoid unecessary overwrite
+        elif grep -q "set-option :random-seed" "${1}"; then
+            sed -i "s/[; ]*\((set-option :random-seed\)  *\([0-9]*\)/\1 ${2}/" "${1}"
+        else
+            sed -i "1s/^/(set-option :random-seed ${2})\n/" "${1}"
+        fi
+    else
+        if grep -q "set-option :random-seed" "${1}"; then
+            sed -i 's/^ *\((set-option :random-seed  *[0-9]*)\)//' "${1}"
         else
             :   # avoid unecessary overwrite
         fi
@@ -727,7 +757,7 @@ function wcet_handle_file ()
     #   - should generate omt formula of the right encoding
     #   - should run the right omt solver
     #   - should save in ${func_name} the formatted string with collected data
-    if (( "${5}" > 0 )) && [[ ${func_name} =~ "optimathsat" ]]; then
+    if (( "${5}" > 0 )); then
         for (( i = 1; i <= "${5}"; i++ ));
         do
             local seed;
@@ -785,6 +815,13 @@ function wcet_store_statistics()
     wcet_store_statistics="${stats_file}"
 }
 
+# wcet_get_random_seed:
+#   returns a pre-computed random seed to be used to initialize the omt solver
+#       ${1}        -- random seed index
+#       return ${wcet_get_random_seed}
+#                   -- the random seed value
+#
+# shellcheck disable=SC2034
 function wcet_get_random_seed()
 {
     wcet_get_random_seed=
