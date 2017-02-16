@@ -20,23 +20,26 @@ index 8ff28e7..1a93115 100644
  %.res: %.bc
  	#$(SCRIPTDIR)/go.sh -c $< -b -l -n > $@ 2> $@
 diff --git a/WCET/go.sh b/WCET/go.sh
-index 9f025d3..f748712 100755
+index 9f025d3..a4dfc1c 100755
 --- a/WCET/go.sh
 +++ b/WCET/go.sh
-@@ -3,8 +3,10 @@
+@@ -3,8 +3,13 @@
  SCRIPTDIR=`dirname $0`
  
  export LD_LIBRARY_PATH=$SCRIPTDIR/../external/z3/lib/:$LD_LIBRARY_PATH
 -export PAGAI_PATH=$SCRIPTDIR/../src/
 -export PATH=$SCRIPTDIR/../external/llvm/bin/:$PATH
 +export PAGAI_PATH=$SCRIPTDIR/../src
-+export PATH=$SCRIPTDIR/../external/llvm/bin/:$PAGAI_PATH:$PATH
++export PATH=$SCRIPTDIR/../external/llvm/bin/:$SCRIPTDIR/../external/z3/bin/:$PAGAI_PATH:$PATH
 +
 +export LLVM_PATH=$SCRIPTDIR/../external/llvm/bin
++
++echo $SCRIPTDIR
++echo $PATH
  
  function check_path () {
  	if [ -z "`which pagai`" ] ; then
-@@ -117,22 +119,26 @@ name=${filename%.*}
+@@ -117,22 +122,26 @@ name=${filename%.*}
  function ccompile {
  	echo "Compiling..."
  	echo "dir = " $dir
@@ -66,7 +69,7 @@ index 9f025d3..f748712 100755
  		$PAGAI_PATH/pagai -i $dir/$name.bc -s z3 --wcet --printformula > $dir/$name.gen
  	fi
  }
-@@ -168,14 +174,16 @@ if [ $RECURSIVECUTS -eq 1 ] ; then
+@@ -168,14 +177,16 @@ if [ $RECURSIVECUTS -eq 1 ] ; then
  	printcutsoption=" --recursivecuts --printcutslist  $dir/$name.cuts"
  fi
  
@@ -84,7 +87,7 @@ index 9f025d3..f748712 100755
  	python $SCRIPTDIR/generateSMTwcet.py $dir/$name.gen --nosummaries $matchingoption $printsyntacticoption $printcutsoption > $dir/${name}${MATCHING}.nosummaries.smt2
  	FORMULA=$dir/${name}${MATCHING}.nosummaries.smt2
  fi
-@@ -195,9 +203,8 @@ else
+@@ -195,9 +206,8 @@ else
  	smtopt=$SCRIPTDIR/smtopt/smtopt
  fi
  
@@ -96,7 +99,7 @@ index 9f025d3..f748712 100755
  HASTERMINATED=$?
  echo "process terminated with code " $HASTERMINATED
  case $HASTERMINATED in
-@@ -242,7 +249,7 @@ function processresult {
+@@ -242,7 +252,7 @@ function processresult {
  			SMTRES=`tail -n 2  $FORMULA.smtopt | grep "maximum value"  | cut -d ' ' -f 7 `
  			SMTTIME=`tail -n 2  $FORMULA.smtopt | grep "Computation time is"  | cut -d ' ' -f 4 `
  			# arrondi:
@@ -106,7 +109,7 @@ index 9f025d3..f748712 100755
  			;;
  		*)
 diff --git a/WCET/smtopt/Makefile b/WCET/smtopt/Makefile
-index edd7039..d16a771 100644
+index edd7039..abea182 100644
 --- a/WCET/smtopt/Makefile
 +++ b/WCET/smtopt/Makefile
 @@ -1,7 +1,11 @@
@@ -123,10 +126,10 @@ index edd7039..d16a771 100644
 +	$(CC) -Wall -o smtopt -I ../../../z3/build/api -L../../../z3/build/ -O0  smtopt.cc -lz3
 +	$(CC) -Wall -o smtopt2 -I ../../../z3/build/api -L../../../z3/build/ -O0  smtoptv2.cc -lz3
 diff --git a/WCET/smtopt/smtopt.cc b/WCET/smtopt/smtopt.cc
-index 72b780c..46a8727 100644
+index 72b780c..8e10554 100644
 --- a/WCET/smtopt/smtopt.cc
 +++ b/WCET/smtopt/smtopt.cc
-@@ -18,6 +18,11 @@
+@@ -18,20 +18,30 @@
  #include "z3.h"
  #include "z3_api.h"
  
@@ -138,8 +141,9 @@ index 72b780c..46a8727 100644
  using namespace std;
  
  // input options
-@@ -25,12 +30,12 @@ bool verbose = false;
+ bool verbose = false;
  bool fullmodel = false;
++const char* random_seed = "0";
  int max_bound = 0;
  
 -Z3_context createSMT(const string &smtFormula){
@@ -151,9 +155,14 @@ index 72b780c..46a8727 100644
 -	//Z3_set_logic(ctx,"QF_LIA");
 +//	Z3_set_logic(ctx,"QF_NRA");
  
++	if (strcmp(random_seed, "0") != 0) {
++		std::cerr << ";; set random seed: " << random_seed << std::endl;
++		Z3_global_param_set("smt.random_seed", random_seed);
++	}
  
  	//Z3_parse_smtlib_string(ctx, smtFormula.c_str(), 0, 0, 0, 0, 0, 0);
-@@ -55,28 +60,38 @@ Z3_context createSMT(const string &smtFormula){
+ 	//Z3_ast f = Z3_get_smtlib_formula(ctx, 0);
+@@ -55,28 +65,38 @@ Z3_context createSMT(const string &smtFormula){
  	Z3_parse_smtlib_string(ctx, smtlibFormula.c_str(), 0, 0, 0, 0, 0, 0);
  	Z3_ast f = Z3_get_smtlib_formula(ctx, 0);
  
@@ -200,7 +209,7 @@ index 72b780c..46a8727 100644
  	}
  
  	if (result == Z3_L_TRUE)
-@@ -103,11 +118,18 @@ bool readProblem(int argc, char *argv[], string &smtFormula, char * &varMaximize
+@@ -103,11 +123,18 @@ bool readProblem(int argc, char *argv[], string &smtFormula, char * &varMaximize
  	}
  
  	try{
@@ -212,7 +221,7 @@ index 72b780c..46a8727 100644
 +		} else {
 +			smtfile.reset(new ifstream(argv[1]));
 +		}
-+		
++
  		varMaximize = argv[2];
  
  		smtFormula.clear();
@@ -221,7 +230,20 @@ index 72b780c..46a8727 100644
  			smtFormula += line + '\n';
  		
  		for (int i = 3; i < argc; ++i){
-@@ -157,35 +179,36 @@ bool recoverVarInFormula(const Z3_context &ctx, const char *varName, Z3_ast &var
+@@ -124,8 +151,10 @@ bool readProblem(int argc, char *argv[], string &smtFormula, char * &varMaximize
+                 std::cout << argv[i] << " is not a valid argument\n";
+ 				printHelp();
+ 				return false;
+-			}
+-			else{
++			} else if (strcmp(argv[i], "-r") == 0 && (i+1) < argc) {
++				i++;
++				random_seed = argv[i];
++			} else {
+ 				printf("Error: Unknown option %s", argv[i]);
+ 				return false;
+ 			}
+@@ -157,35 +186,36 @@ bool recoverVarInFormula(const Z3_context &ctx, const char *varName, Z3_ast &var
  }
  
  // Initially unbounded binary search
@@ -270,7 +292,7 @@ index 72b780c..46a8727 100644
  			Z3_get_numeral_int64(ctx, t, &min);
  			if (!upperBoundFound) {
  				if (max_bound == 0) {
-@@ -200,7 +223,7 @@ long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_d
+@@ -200,7 +230,7 @@ long long binarySearch(const Z3_context &ctx, const Z3_ast &var, const Z3_func_d
  			}
  			if (verbose) printf("SAT (value found = %lld). New interval = [%lld, %lld].\n", min, min, max);
  		}
@@ -279,7 +301,7 @@ index 72b780c..46a8727 100644
  	return min;
  }
  
-@@ -208,6 +231,7 @@ int main(int argc, char *argv[]) {
+@@ -208,6 +238,7 @@ int main(int argc, char *argv[]) {
  	Z3_context ctx;
  	Z3_ast varToMax;
  	Z3_func_decl varToMaxDecl;
@@ -287,7 +309,7 @@ index 72b780c..46a8727 100644
  
  	string smtFormula;
  	char *varMaximize = NULL;
-@@ -215,17 +239,18 @@ int main(int argc, char *argv[]) {
+@@ -215,17 +246,18 @@ int main(int argc, char *argv[]) {
  
  	if (readProblem(argc, argv, smtFormula, varMaximize) == false)
  		exit(0);
@@ -310,7 +332,7 @@ index 72b780c..46a8727 100644
  	Z3_del_context(ctx);
  }
 diff --git a/WCET/smtopt/smtoptv2.cc b/WCET/smtopt/smtoptv2.cc
-index 0f78ce5..18dffb0 100644
+index 0f78ce5..fefc9f5 100644
 --- a/WCET/smtopt/smtoptv2.cc
 +++ b/WCET/smtopt/smtoptv2.cc
 @@ -18,6 +18,11 @@
@@ -480,12 +502,12 @@ index 0f78ce5..18dffb0 100644
  	        		var = Z3_mk_const(ctx, symb, Z3_mk_int_sort(ctx));
  	        		std::cout << "cut found " << name << "\n";
 -	        		long long solution = binarySearch(ctx, var, decl,current_cut_maxbound);
-+	        		long long solution = binarySearch(ctx, solver, var, decl,current_cut_maxbound);
++				long long solution = binarySearch(ctx, solver, var, decl,current_cut_maxbound);
  	        		std::cout << "cost is " << solution << "\n";
  	        		char tmp[20];
  	        		sprintf(tmp, "%lld", solution);
 -	        		Z3_assert_cnstr(ctx, Z3_mk_le(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
-+	        		Z3_solver_assert(ctx, solver, Z3_mk_le(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
++				Z3_solver_assert(ctx, solver, Z3_mk_le(ctx, var, Z3_mk_numeral(ctx, tmp, Z3_mk_int_sort(ctx))));
  	        	}
  	        }
          }
