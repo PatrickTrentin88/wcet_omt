@@ -129,15 +129,16 @@ function wcet_smtopt_0_handler
 {
     wcet_smtopt_0_handler= ;
 
+    smtopt_locals=""
     if (( "${3}" > 0 )); then
         local out_file;
+
+        smtopt_locals+=" -r ${3}"
 
         out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
 
         set -- "${1}" "${out_file}" "${3}"
     fi
-
-    smtopt_locals=""
     wcet_generic_handler "${1}" 0 1 "smtopt" "${2}" "${3}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
 
     wcet_smtopt_0_handler="${wcet_generic_handler}"
@@ -149,15 +150,16 @@ function wcet_smtopt_0_cuts_handler
 {
     wcet_smtopt_0_cuts_handler= ;
 
+    smtopt_locals=""
     if (( "${3}" > 0 )); then
         local out_file;
+
+        smtopt_locals+=" -r ${3}"
 
         out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
 
         set -- "${1}" "${out_file}" "${3}"
     fi
-
-    smtopt_locals=""
     wcet_generic_handler "${1}" 0 0 "smtopt" "${2}" "${3}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
 
     wcet_smtopt_0_cuts_handler="${wcet_generic_handler}"
