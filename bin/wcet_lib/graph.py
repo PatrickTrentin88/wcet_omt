@@ -152,6 +152,8 @@ class SourceCodeGraph:
             cost = self._add_graph_to_env_with_difference_logic(env, encoding)
         elif (ENC_ASSERT_SOFT == encoding):
             cost = self._add_graph_to_env_with_assert_soft(env, encoding)
+        elif (ENC_DEFAULT_BAD == encoding):
+            cost = self._add_graph_to_env_default_bad(env, encoding)
         else:
             cost = self._add_graph_to_env_default(env, encoding)
 
@@ -168,9 +170,10 @@ class SourceCodeGraph:
         env.assert_formula(f)
 
         longest_path, max_path_cvars, node_cvars, edge_cvars = self.compute_longest_syntactic_path(False)
-        f = make_and([make_leq(0, cost), make_leq(cost, longest_path)])
+        if (ENC_DEFAULT_BAD != encoding):
+            f = make_and([make_leq(0, cost), make_leq(cost, longest_path)])
         env.assert_formula(f)
-        env.maximize(cost, 0, longest_path)
+        env.maximize(cost, 0, longest_path + 1)
 
         # add comments
         no_paths = self._compute_paths_among(self._start_uid, self._end_uid)
@@ -184,6 +187,39 @@ class SourceCodeGraph:
 
     def _add_graph_to_env_default(self, env, encoding):
         """uses the original encoding used in LCTES14: cost = SUM cost(node_i) + SUM cost(edge_i)"""
+        csum = []
+        cost = env.declare_fun("cost", Environment.INT)
+
+        # add nodes
+        uids = self._nodes.keys()
+        uids.sort()
+        for node_uid in uids:
+            node = self._nodes[node_uid]
+            if (node.get_cost() != 0):
+                csum.append(node.get_cost_var())
+            node.add_node_to_env(env, encoding)
+
+        # add edges
+        uids = self._edges.keys()
+        uids.sort()
+        for edge_uid in uids:
+            edge = self._edges[edge_uid]
+            if (edge.get_cost() != 0):
+                csum.append(edge.get_cost_var())
+            edge.add_edge_to_env(env, encoding)
+
+        # add objective function
+        f = make_equal(cost, make_plus(csum))
+        env.assert_formula(f)
+
+        return cost
+
+    def _add_graph_to_env_default(self, env, encoding):
+        """uses the original encoding used in LCTES14: cost = SUM cost(node_i) + SUM cost(edge_i)"""
+        """NOTE: this encoding actually matches the original one more closely, it discards some  """
+        """      minor improvements that I inadvertedly brought when rewriting the code. This    """
+        """      should be used only for comparison with original LCTES14 results published in   """
+        """      the paper, since it is less efficient than default version.                     """
         csum = []
         cost = env.declare_fun("cost", Environment.INT)
 

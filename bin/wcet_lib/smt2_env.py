@@ -5,6 +5,7 @@
 ENC_DEFAULT          = 0
 ENC_ASSERT_SOFT      = 1
 ENC_DIFFERENCE_LOGIC = 2
+ENC_DEFAULT_BAD      = 3 # like 0, but without reasonable improvements
 
 ###
 ###

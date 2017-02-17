@@ -56,6 +56,14 @@ class Node:
             if self._cost > 0:
                 env.assert_soft_formula(make_not(self._bvar), self._cost, asoft_id)
 
+        elif (ENC_DEFAULT_BAD == encoding):
+            env.declare_fun(self._cost_var, Environment.INT)
+            if self._dominator < 0: # no ITE simplification allowed
+                f = make_equal(self._cost_var, self._cost)
+            else:
+                f = make_equal(self._cost_var, make_ite(self._bvar, self._cost, "0"))
+            env.assert_formula(f)
+
         else:
             env.declare_fun(self._cost_var, Environment.INT)
             if self._dominator < 0 or int(self._cost) == 0:
@@ -156,6 +164,29 @@ class Cut:
             f = make_leq(cost, self._cost)
             env.assert_formula(f)
 
+        elif (ENC_DEFAULT_BAD == encoding):
+            # collect cvars
+            cvars = []
+            for node_uid in self._node_uids:
+                node = self._graph.get_node(node_uid)
+                node_cost = node.get_cost()
+                cvars.append(node.get_cost_var()) # 0-cost variables added all the same
+            for edge_uid in self._edge_uids:
+                edge = self._graph.get_edge(edge_uid)
+                edge_cost = edge.get_cost()
+                cvars.append(edge.get_cost_var()) # 0-cost variables added all the same
+
+            env.declare_fun(self._cost_var, Environment.INT)
+            if len(cvars) > 1:
+                f = make_equal(self._cost_var, make_plus(cvars))
+            elif len(cvars) == 1:
+                f = make_equal(self._cost_var, cvars[0])
+            else:
+                f = make_equal(self._cost_var, 0)
+            env.assert_formula(f)
+            f = make_leq(self._cost_var, self._cost)
+            env.assert_formula(f)
+
         else:
             # collect cvars
             cvars = []
@@ -240,6 +271,12 @@ class Edge:
             asoft_id = args["id"]
             if self._cost > 0:
                 env.assert_soft_formula(make_not(self._bvar), self._cost, asoft_id)
+
+        elif (ENC_DEFAULT_BAD == encoding):
+            env.declare_fun(self._cost_var, Environment.INT)
+            # no ITE semplification
+            f = make_equal(self._cost_var, make_ite(self._bvar, self._cost, "0"))
+            env.assert_formula(f)
 
         else:
             env.declare_fun(self._cost_var, Environment.INT)
