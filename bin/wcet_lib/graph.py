@@ -172,8 +172,10 @@ class SourceCodeGraph:
         longest_path, max_path_cvars, node_cvars, edge_cvars = self.compute_longest_syntactic_path(False)
         if (ENC_DEFAULT_BAD != encoding):
             f = make_and([make_leq(0, cost), make_leq(cost, longest_path)])
-        env.assert_formula(f)
-        env.maximize(cost, 0, longest_path + 1)
+            env.assert_formula(f)
+            env.maximize(cost, 0, longest_path + 1)
+        else:
+            env.maximize(cost, None, None)
 
         # add comments
         no_paths = self._compute_paths_among(self._start_uid, self._end_uid)

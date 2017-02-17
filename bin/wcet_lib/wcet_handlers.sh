@@ -141,7 +141,7 @@ function wcet_z3_3_handler
     fi
 
     z3_locals=""
-    wcet_generic_handler "${1}" 0 1 "z3" "${2}" "${3}" "${4}" "${z3_globals}" "${z3_locals}" || return "${?}"
+    wcet_generic_handler "${1}" 3 1 "z3" "${2}" "${3}" "${4}" "${z3_globals}" "${z3_locals}" || return "${?}"
 
     wcet_z3_3_handler="${wcet_generic_handler}"
     return 0;
@@ -161,7 +161,7 @@ function wcet_z3_3_cuts_handler
     fi
 
     z3_locals=""
-    wcet_generic_handler "${1}" 0 0 "z3" "${2}" "${3}" "${4}" "${z3_globals}" "${z3_locals}" || return "${?}"
+    wcet_generic_handler "${1}" 3 0 "z3" "${2}" "${3}" "${4}" "${z3_globals}" "${z3_locals}" || return "${?}"
 
     wcet_z3_3_cuts_handler="${wcet_generic_handler}"
     return 0;
@@ -236,7 +236,7 @@ function wcet_smtopt_3_handler
 
         set -- "${1}" "${out_file}" "${3}" "${4}"
     fi
-    wcet_generic_handler "${1}" 0 1 "smtopt" "${2}" "${3}" "${4}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
+    wcet_generic_handler "${1}" 3 1 "smtopt" "${2}" "${3}" "${4}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
 
     wcet_smtopt_3_handler="${wcet_generic_handler}"
     return 0;
@@ -257,7 +257,7 @@ function wcet_smtopt_3_cuts_handler
 
         set -- "${1}" "${out_file}" "${3}" "${4}"
     fi
-    wcet_generic_handler "${1}" 0 0 "smtopt" "${2}" "${3}" "${4}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
+    wcet_generic_handler "${1}" 3 0 "smtopt" "${2}" "${3}" "${4}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
 
     wcet_smtopt_3_cuts_handler="${wcet_generic_handler}"
     return 0;
@@ -585,7 +585,7 @@ function wcet_optimathsat_3_handler
 
         set -- "${1}" "${out_file}" "${3}" "${4}"
     fi
-    wcet_generic_handler "${1}" 0 1 "optimathsat" "${2}" "${3}" "${4}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
+    wcet_generic_handler "${1}" 3 1 "optimathsat" "${2}" "${3}" "${4}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_3_handler="${wcet_generic_handler}"
     return 0;
@@ -606,7 +606,7 @@ function wcet_optimathsat_3_cuts_handler
 
         set -- "${1}" "${out_file}" "${3}" "${4}"
     fi
-    wcet_generic_handler "${1}" 0 0 "optimathsat" "${2}" "${3}" "${4}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
+    wcet_generic_handler "${1}" 3 0 "optimathsat" "${2}" "${3}" "${4}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
 
     wcet_optimathsat_3_cuts_handler="${wcet_generic_handler}"
     return 0;
