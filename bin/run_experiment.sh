@@ -161,21 +161,27 @@ DESCRIPTION
 
 HANDLER UIDS
     z3_0                    -- z3          + default encoding
-    z3_0_cuts               -- z3          + default encoding + cuts
+    z3_0_cuts               -- z3          + default encoding     + cuts
     smtopt_0                -- smtopt      + default encoding
-    smtopt_0_cuts           -- smtopt      + default encoding + cuts
+    smtopt_0_cuts           -- smtopt      + default encoding     + cuts
     optimathsat_0           -- optimathsat + default encoding
-    optimathsat_0_cuts      -- optimathsat + default encoding + cuts
-    optimathsat_1_sn        -- optimathsat + assert-soft enc. +      + sorting networks
-    optimathsat_1_cuts_sn   -- optimathsat + assert-soft enc. + cuts + sorting networks
+    optimathsat_0_cuts      -- optimathsat + default encoding     + cuts
+    optimathsat_1_sn        -- optimathsat + assert-soft enc.     +      + sorting networks
+    optimathsat_1_cuts_sn   -- optimathsat + assert-soft enc.     + cuts + sorting networks
     optimathsat_2           -- optimathsat + diff. logic enc.
-    optimathsat_2_cuts      -- optimathsat + diff. logic enc. + cuts
-    optimathsat_2_dl_1      -- optimathsat + diff. logic enc. +      + dlSolver + short tlemmas
-    optimathsat_2_cuts_dl_1 -- optimathsat + diff. logic enc. + cuts + dlSolver + short tlemmas
-    optimathsat_2_dl_2      -- optimathsat + diff. logic enc. +      + dlSolver + long  tlemmas
-    optimathsat_2_cuts_dl_2 -- optimathsat + diff. logic enc. + cuts + dlSolver + long  tlemmas
-    optimathsat_2_dl_3      -- optimathsat + diff. logic enc. +      + dlSolver + both  tlemmas
-    optimathsat_2_cuts_dl_3 -- optimathsat + diff. logic enc. + cuts + dlSolver + both  tlemmas
+    optimathsat_2_cuts      -- optimathsat + diff. logic enc.     + cuts
+    optimathsat_2_dl_1      -- optimathsat + diff. logic enc.     +      + dlSolver + short tlemmas
+    optimathsat_2_cuts_dl_1 -- optimathsat + diff. logic enc.     + cuts + dlSolver + short tlemmas
+    optimathsat_2_dl_2      -- optimathsat + diff. logic enc.     +      + dlSolver + long  tlemmas
+    optimathsat_2_cuts_dl_2 -- optimathsat + diff. logic enc.     + cuts + dlSolver + long  tlemmas
+    optimathsat_2_dl_3      -- optimathsat + diff. logic enc.     +      + dlSolver + both  tlemmas
+    optimathsat_2_cuts_dl_3 -- optimathsat + diff. logic enc.     + cuts + dlSolver + both  tlemmas
+    z3_3                    -- z3          + bad default encoding
+    z3_3_cuts               -- z3          + bad default encoding + cuts
+    smtopt_3                -- smtopt      + bad default encoding
+    smtopt_3_cuts           -- smtopt      + bad default encoding + cuts
+    optimathsat_3           -- optimathsat + bad default encoding
+    optimathsat_3_cuts      -- optimathsat + bad default encoding + cuts
 
     for more, see `wcet_omt/wcet_lib/wcet_handlers.sh`
 

@@ -123,6 +123,52 @@ function wcet_z3_0_cuts_handler
 
 
 ###
+### Z3 + BAD DEFAULT ENCODING
+###
+
+
+# shellcheck disable=SC2034
+function wcet_z3_3_handler
+{
+    wcet_z3_3_handler= ;
+
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}" "${4}"
+    fi
+
+    z3_locals=""
+    wcet_generic_handler "${1}" 0 1 "z3" "${2}" "${3}" "${4}" "${z3_globals}" "${z3_locals}" || return "${?}"
+
+    wcet_z3_3_handler="${wcet_generic_handler}"
+    return 0;
+}
+
+# shellcheck disable=SC2034
+function wcet_z3_3_cuts_handler
+{
+    wcet_z3_3_cuts_handler= ;
+
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}" "${4}"
+    fi
+
+    z3_locals=""
+    wcet_generic_handler "${1}" 0 0 "z3" "${2}" "${3}" "${4}" "${z3_globals}" "${z3_locals}" || return "${?}"
+
+    wcet_z3_3_cuts_handler="${wcet_generic_handler}"
+    return 0;
+}
+
+
+###
 ### SMTOPT + DEFAULT ENCODING
 ###
 
@@ -166,6 +212,54 @@ function wcet_smtopt_0_cuts_handler
     wcet_generic_handler "${1}" 0 0 "smtopt" "${2}" "${3}" "${4}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
 
     wcet_smtopt_0_cuts_handler="${wcet_generic_handler}"
+    return 0;
+}
+
+
+###
+### SMTOPT + BAD DEFAULT ENCODING
+###
+
+
+# shellcheck disable=SC2034
+function wcet_smtopt_3_handler
+{
+    wcet_smtopt_3_handler= ;
+
+    smtopt_locals=""
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        smtopt_locals+=" -r ${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}" "${4}"
+    fi
+    wcet_generic_handler "${1}" 0 1 "smtopt" "${2}" "${3}" "${4}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
+
+    wcet_smtopt_3_handler="${wcet_generic_handler}"
+    return 0;
+}
+
+# shellcheck disable=SC2034
+function wcet_smtopt_3_cuts_handler
+{
+    wcet_smtopt_3_cuts_handler= ;
+
+    smtopt_locals=""
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        smtopt_locals+=" -r ${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}" "${4}"
+    fi
+    wcet_generic_handler "${1}" 0 0 "smtopt" "${2}" "${3}" "${4}" "${smtopt_globals}" "${smtopt_locals}" || return "${?}"
+
+    wcet_smtopt_3_cuts_handler="${wcet_generic_handler}"
     return 0;
 }
 
@@ -469,6 +563,55 @@ function wcet_optimathsat_2_cuts_dl_3_handler
     wcet_optimathsat_2_cuts_dl_3_handler="${wcet_generic_handler}"
     return 0;
 }
+
+
+###
+### OPTIMATHSAT + BAD DEFAULT ENCODING
+###
+
+
+# shellcheck disable=SC2034
+function wcet_optimathsat_3_handler
+{
+    wcet_optimathsat_3_handler= ;
+
+    optimathsat_locals=""
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}" "${4}"
+    fi
+    wcet_generic_handler "${1}" 0 1 "optimathsat" "${2}" "${3}" "${4}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
+
+    wcet_optimathsat_3_handler="${wcet_generic_handler}"
+    return 0;
+}
+
+# shellcheck disable=SC2034
+function wcet_optimathsat_3_cuts_handler
+{
+    wcet_optimathsat_3_cuts_handler= ;
+
+    optimathsat_locals=""
+    if (( "${3}" > 0 )); then
+        local out_file;
+
+        optimathsat_locals+=" -random_seed=${3}"
+
+        out_file="$(dirname "${2}")/seed_${3}_$(basename "${2}")"
+
+        set -- "${1}" "${out_file}" "${3}" "${4}"
+    fi
+    wcet_generic_handler "${1}" 0 0 "optimathsat" "${2}" "${3}" "${4}" "${optimathsat_globals}" "${optimathsat_locals}" || return "${?}"
+
+    wcet_optimathsat_3_cuts_handler="${wcet_generic_handler}"
+    return 0;
+}
+
 
 ###
 ### TESTING
