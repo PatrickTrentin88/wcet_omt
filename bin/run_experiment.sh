@@ -23,7 +23,8 @@ function re_main ()
 
     wcet_generate_bc "${1}" "${ONE_DIR_ONE_BC}" || { return "${?}"; };
 
-    wcet_run_experiment "${@:1:2}" "${UNROLL_LOOPS}" "${NUM_RANDOM_SEEDS}" "${@:3}" || { return "${?}"; };
+    wcet_run_experiment "${@:1:2}" "${UNROLL_LOOPS}" "${NUM_RANDOM_SEEDS}" \
+                        "${USE_EDGES_MATCH}" "${@:3}" || { return "${?}"; };
 
     return 0;
 }
@@ -67,8 +68,9 @@ function re_parse_options()
 	UNROLL_LOOPS=0      # perform bytecode loop unrolling optimization
     ONE_DIR_ONE_BC=0    # treat all `.c` files in a directory as part of the same executable
     NUM_RANDOM_SEEDS=0  # 0: disabled, else: use up to # random [fixed] seeds [only for optimathsat]
+    USE_EDGES_MATCH=0   # 0: disabled, else: use edge costs instead of block costs
     OPTIND=1
-    while getopts "h?t:wfcs:r:vmuz:" opt; do
+    while getopts "h?t:wfcs:r:vmuz:e" opt; do
         case "${opt}" in
             h|\?)
                 re_usage; exit 0; ;;
@@ -98,6 +100,8 @@ function re_parse_options()
                 UNROLL_LOOPS=1; ;;
             z)
                 [[ "${OPTARG}" =~ ^[0-9]+$ ]] && NUM_RANDOM_SEEDS=$((OPTARG)) || { re_usage; return 1; }; ;;
+            e)
+                USE_EDGES_MATCH=1; ;;
             *)
                 re_usage; return 1; ;;
         esac
@@ -152,6 +156,8 @@ DESCRIPTION
     -z N    if different than zero, runs the solver up to N times over the same
             omt formula using a different seed taken from a list of precomputed
             maximum 100 random values.
+    -e      set costs over edges instead of blocks, edge costs are expected to be
+            saved in `<base_name>.edges.match` in the same directory as `base_name.bc`
 
 HANDLER UIDS
     z3_0                    -- z3          + default encoding

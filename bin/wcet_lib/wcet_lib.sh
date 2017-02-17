@@ -182,6 +182,7 @@ function wcet_gen_blocks()
 #       [${4}]      -- disable summaries if non-zero
 #       [${5}]      -- dump matchings to file if non-zero (ext: `.llvmtosmtmatch`)
 #       [${6}]      -- dump longest execution path to file if non-zero (ext: `.longestsyntactic`)
+#       [${7}]      -- use edges costs file `.edges.match`, 0: ignored
 #       return ${wcet_gen_omt}
 #                   -- full path to OMT formula file (ext: `.smt2`)
 #
@@ -198,6 +199,7 @@ function wcet_gen_omt()
     [ -n "${4}" ] && no_summaries=$((${4}))   || no_summaries=$((0))
     [ -n "${5}" ] && print_matching=$((${5})) || print_matching=$((0))
     [ -n "${6}" ] && print_maxpath=$((${6}))  || print_maxpath=$((0))
+    [ -n "${7}" ] && use_edgecosts=$((${7}))  || use_edgecosts=$((0))
     [[ "${1}" =~ \.gen$ ]] && dst_base="${1:: -4}" || dst_base="${1}"
 
     if (( 0 != no_summaries )); then
@@ -206,11 +208,16 @@ function wcet_gen_omt()
         dst_file="${dst_base}.${encoding}.cuts.smt2"
     fi
 
+    if (( 0 != use_edgecosts )); then
+        is_readable_file "${dst_base}.edges.match" "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "${LINENO}" || return "${?}"
+    fi
+
     options=("--encoding" "${encoding}")
     (( 0 != timeout ))        && options+=("--timeout" "${timeout}")
     (( 0 != no_summaries ))   && options+=("--nosummaries")
     (( 0 != print_matching )) && options+=("--smtmatching" "${dst_base}.llvmtosmtmatch")
     (( 0 != print_maxpath ))  && options+=("--printlongestsyntactic" "${dst_base}.longestsyntactic")
+    (( 0 != use_edgecosts ))  && options+=("--matchingfile" "${dst_base}.edges.match")
 
     if (( 0 == SKIP_EXISTING )) || test ! \( -f "${dst_file}" -a -r "${dst_file}" \) ; then
         log_cmd "wcet_generator.py ${options[*]} \"${1}\" > \"${dst_file}\""
@@ -587,6 +594,7 @@ function wcet_parse_output ()
 #       ${3}        -- if != 0, then attempt unroll of all formulas
 #       ${4}        -- if != 0, run benchmark up to ${4} times using
 #                       a list of predefined random seeds
+#       ${5}        -- if != 0, use `edges.match` file information
 #       [...]       -- keywords `{*}`, where `{*}` is the id
 #                      of a handler with name `wcet_{*}_handler`
 #
@@ -599,7 +607,7 @@ function wcet_run_experiment ()
 
     set -- "$(realpath "${1}")" "$(realpath "${2}")" "${@:3}"
 
-    for test_conf in "${@:5}"
+    for test_conf in "${@:6}"
     do
         find "${2}/${test_conf}" -name "*.txt" -type f -delete &>/dev/null
     done
@@ -615,14 +623,14 @@ function wcet_run_experiment ()
         [[ "${file}" =~ \.opt\.bc$ ]] && continue;
         [[ "${file}" =~ \.unr\.bc$ ]] && continue;
 
-        for test_conf in "${@:5}"
+        for test_conf in "${@:6}"
         do
             local dest_dir= ;
             dest_dir="${2}/${test_conf}"
 
             wcet_replicate_dirtree "${1}" "${dest_dir}" "${file}" || return "${?}"
 
-            wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}" "${3}" "${4}"
+            wcet_handle_file "${dest_dir}" "${file}" "${wcet_replicate_dirtree}" "${3}" "${4}" "${5}"
         done
     done < <(find "${1}" -name "*.bc" )
 }
@@ -718,6 +726,7 @@ function wcet_replicate_dirtree ()
 #       ${4}        -- if != 0, then attempt unroll of all formulas
 #       ${5}        -- if != 0, run benchmark up to ${5} times using
 #                       a list of predefined random seeds
+#       ${6}        -- if != 0, use `edges.match` file information
 #       return ${wcet_handle_file}
 #                   -- full path to the file in which benchmark data has been logged
 #
@@ -763,14 +772,14 @@ function wcet_handle_file ()
             local seed;
             wcet_get_random_seed "${i}"
             seed="${wcet_get_random_seed}"
-            eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\" \"${seed}\"" || \
+            eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\" \"${seed}\" \"${6}\"" || \
                 { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
 
             # 4-5. statistics
             wcet_store_statistics "${1}" "${2}" "${func_name}"
         done
     else
-        eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\" \"0\"" || \
+        eval "${func_name} \"${wcet_gen_blocks}\" \"${3}\" \"0\" \"${6}\"" || \
             { error "${NAME_WCET_LIB}" "${FUNCNAME[0]}" "$((LINENO - 1))" "<${func_name}> unexpected error" "${?}"; return "${?}"; };
 
         # 4-5. statistics

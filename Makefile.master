@@ -32,6 +32,9 @@ WCET_REPEAT			?= 0
 # N > 0 : execute the handler N times over the same
 #		  formula with a different random seed taken
 #		  from a fixed list
+WCET_USE_EMATCHES   ?= 0
+# 0 : ignored
+# 1 : use edge's costs in `<file>.edges.match` instead of block costs
 
 WCET_RUN_FLAGS		:= -f -s $(WCET_OVERWRITE)
 # -f   : print general information
@@ -59,10 +62,16 @@ endif
 
 DO_REPEAT := $(shell [ $(WCET_REPEAT) -gt 0 ] && echo 1 || echo 0 )
 ifeq ($(DO_REPEAT), 1)
-	WCET_RUN_FLAGS += -z $(WCET_REPEAT)
+	WCET_RUN_FLAGS  += -z $(WCET_REPEAT)
 	# -z N : execute benchmark handler N times
 	#        over the same smt2 formula with
 	#		 random seed
+endif
+
+ifeq ($(WCET_USE_EMATCHES), 1)
+	WCET_RUN_FLAGS  += -e
+	# -e   : set costs over edges instead of blocks,
+	#		 values are read from <file>.edges.match
 endif
 
 WCET_SETUP_FLAGS	:= -f -c -w
